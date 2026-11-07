@@ -1,41 +1,17 @@
 <!DOCTYPE html>
-<html lang="ru" class="dark">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Стальная линия — Экосистема замеров и договоров</title>
+  <title>ЗамерМастер — Стальная Линия</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            graphite: {
-              950: '#0b0d11',
-              900: '#11141b',
-              850: '#161a23',
-              800: '#1c212c',
-              700: '#262d3d',
-              600: '#343d52'
-            },
-            brand: {
-              gold: '#f59e0b',
-              goldLight: '#fbbf24',
-              steel: '#38bdf8'
-            }
-          }
-        }
-      }
-    };
-  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background-color: #0b0d11;
-      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
       -webkit-tap-highlight-color: transparent;
     }
     input[type="number"]::-webkit-inner-spin-button,
@@ -46,22 +22,8 @@
     input[type="number"] {
       -moz-appearance: textfield;
     }
-    .custom-scroll::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-      background: #11141b;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: #262d3d;
-      border-radius: 3px;
-    }
 
-    /* Стили печати */
-    #print-container {
-      display: none;
-    }
+    /* Стили для печати */
     @media print {
       @page {
         size: A4 portrait;
@@ -71,346 +33,768 @@
         background: #ffffff !important;
         color: #000000 !important;
       }
-      #app-shell,
       .no-print {
         display: none !important;
       }
-      #print-container {
+      #print-blank-container,
+      #print-filled-container {
+        display: none;
+      }
+      body.print-mode-blank #print-blank-container {
         display: block !important;
-        width: 100%;
-        background: #ffffff !important;
-        color: #000000 !important;
+      }
+      body.print-mode-filled #print-filled-container {
+        display: block !important;
+      }
+      .blank-half-a4 {
+        height: 136mm;
+        box-sizing: border-box;
+        page-break-inside: avoid;
+      }
+      .cut-line {
+        border-top: 1.5px dashed #64748b;
+        margin: 3mm 0;
+        position: relative;
       }
     }
   </style>
 </head>
-<body class="min-h-screen bg-graphite-950 text-gray-100 selection:bg-amber-500 selection:text-black">
+<body class="min-h-screen pb-24">
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ (НЕ ПЕЧАТАЕТСЯ) -->
+  <header class="no-print sticky top-0 z-30 bg-slate-900 text-white shadow-md">
+    <div class="max-w-4xl mx-auto px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-extrabold text-lg shadow">
+          СЛ
+        </div>
+        <div>
+          <h1 class="font-bold text-base leading-tight">ЗамерМастер</h1>
+          <p class="text-[11px] text-slate-400">Входные двери • Шаг 30 мм</p>
+        </div>
+      </div>
+
+      <!-- Кнопки быстрых действий -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button onclick="openScanModal()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs px-3 py-2 rounded-lg shadow transition">
+          <i data-lucide="scan-line" class="w-4 h-4"></i>
+          <span>Сканировать бланк</span>
+        </button>
+
+        <button onclick="printBlankForm()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-medium text-xs px-2.5 py-2 rounded-lg transition" title="Распечатать пустой бланк А4 пополам (2 шт. на листе)">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-amber-400"></i>
+          <span class="hidden sm:inline">Пустой бланк (А4/2)</span>
+          <span class="sm:hidden">Бланк</span>
+        </button>
+
+        <button onclick="printFilledForm()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3 py-2 rounded-lg shadow transition" title="Распечатать заполненный замерочный лист">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>Печать замера</span>
+        </button>
+
+        <button onclick="clearAllFields(true)" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 transition" title="Очистить все поля">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
 
   <!-- ОСНОВНОЙ ИНТЕРФЕЙС ПРИЛОЖЕНИЯ -->
-  <div id="app-shell" class="max-w-6xl mx-auto px-3 sm:px-6 pb-20">
+  <main class="no-print max-w-4xl mx-auto px-3 pt-4 space-y-4">
 
-    <!-- ШАПКА ФИРМЕННОГО САЛОНА -->
-    <header class="sticky top-0 z-30 bg-graphite-950/95 backdrop-blur-md border-b border-graphite-700/80 py-3 mb-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3 cursor-pointer" onclick="App.navigate('dashboard')">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-400/40">
-            <i data-lucide="shield-check" class="w-6 h-6 text-graphite-950"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Фирменный салон</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-graphite-800 border border-graphite-700 text-gray-400">Экосистема v2.0</span>
-            </div>
-            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">СТАЛЬНАЯ ЛИНИЯ</h1>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button onclick="App.openOrdersModal()" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs sm:text-sm font-medium transition">
-            <i data-lucide="folder-open" class="w-4 h-4 text-amber-400"></i>
-            <span>Журнал заказов</span>
-            <span id="orders-count-badge" class="px-1.5 py-0.5 text-[11px] rounded-md bg-graphite-950 text-amber-400 font-bold">1</span>
-          </button>
-          <button onclick="App.createNewOrder()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 text-xs sm:text-sm font-bold transition shadow-md shadow-amber-500/10">
-            <i data-lucide="user-plus" class="w-4 h-4"></i>
-            <span class="hidden sm:inline">Новый заказ</span>
-          </button>
-          <button onclick="App.openBackupModal()" title="Резервная копия базы" class="p-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-gray-300 transition">
-            <i data-lucide="database" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <!-- СКВОЗНАЯ КАРТОЧКА АКТИВНОГО ЗАКАЗА -->
-    <section id="active-order-banner" class="mb-5"></section>
-
-    <!-- ДИНАМИЧЕСКАЯ ОБЛАСТЬ ЭКРАНОВ -->
-    <main id="main-view"></main>
-
-  </div>
-
-  <!-- КОНТЕЙНЕР ДЛЯ ПЕЧАТИ А4 -->
-  <div id="print-container"></div>
-
-  <!-- МОДАЛЬНОЕ ОКНО: РЕДАКТИРОВАНИЕ КЛИЕНТА, ПАСПОРТА И ДОП. КОНТАКТОВ -->
-  <div id="client-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-auto">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-graphite-700 bg-graphite-850">
-        <div class="flex items-center gap-2.5">
-          <i data-lucide="user-check" class="w-5 h-5 text-amber-400"></i>
-          <h3 class="font-bold text-base sm:text-lg text-white">Карточка клиента и паспортные данные</h3>
-        </div>
-        <button onclick="App.closeClientModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+    <!-- 1. ДАННЫЕ КЛИЕНТА И АДРЕС -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+          <i data-lucide="user-check" class="w-4 h-4 text-amber-500"></i>
+          1. Данные объекта и клиента
+        </h2>
+        <input type="date" id="measureDate" class="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:border-amber-500" />
       </div>
 
-      <div class="p-5 max-h-[80vh] overflow-y-auto custom-scroll space-y-5">
-        <!-- Основные данные -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-1.5">
-            <i data-lucide="contact" class="w-4 h-4"></i> 1. Основные данные объекта
-          </h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="block text-xs text-gray-400 mb-1">ФИО клиента (синхронизировано с паспортом)</label>
-              <input id="modal-client-name" type="text" oninput="App.syncModalFio('main')" placeholder="Иванов Иван Иванович" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
+          <label class="block text-xs font-medium text-slate-500 mb-1">ФИО клиента</label>
+          <input type="text" id="clientName" placeholder="Введите имя..." oninput="saveDraft()"
+            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Телефон</label>
+          <input type="tel" id="clientPhone" placeholder="+375 (__) ___-__-__" oninput="saveDraft()"
+            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Адрес замера</label>
+          <input type="text" id="clientAddress" placeholder="Улица, дом, кв..." oninput="saveDraft()"
+            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-slate-100">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Этаж</label>
+          <input type="number" id="floor" placeholder="Напр: 4" oninput="saveDraft()"
+            class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Грузовой лифт</label>
+          <select id="elevator" onchange="saveDraft()" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
+            <option value="">Не указано</option>
+            <option value="Есть">Есть</option>
+            <option value="Нет (ручной подъём)">Нет (подъём)</option>
+            <option value="Частный дом">Частный дом</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Материал стен</label>
+          <select id="wallMaterial" onchange="saveDraft()" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
+            <option value="">Не указано</option>
+            <option value="Кирпич">Кирпич</option>
+            <option value="Бетон / Монолит">Бетон / Монолит</option>
+            <option value="Газосиликат / Блок">Газосиликат / Блок</option>
+            <option value="Дерево / Брус">Дерево / Брус</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Глубина стены (мм)</label>
+          <input type="number" id="wallDepth" placeholder="мм" oninput="saveDraft()"
+            class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. ЗАМЕР ПРОЁМА И СТАРОЙ ДВЕРИ -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-3">
+        <i data-lucide="ruler" class="w-4 h-4 text-amber-500"></i>
+        2. Размеры строительного проёма (мм)
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Ширина проёма в 3 точках -->
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-700 uppercase">Ширина проёма</span>
+            <span id="minWidthBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">Мин: — мм</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1 text-center">Верх</label>
+              <input type="number" id="widthTop" placeholder="—" oninput="onOpeningChange()"
+                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-1">Основной телефон</label>
-              <div class="flex gap-1.5">
-                <input id="modal-client-phone" type="tel" placeholder="+375 (29) 000-00-00" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
-                <button type="button" onclick="App.callFromInput('modal-client-phone')" title="Позвонить" class="px-3 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600/30 transition flex items-center justify-center">
-                  <i data-lucide="phone-call" class="w-4 h-4"></i>
-                </button>
-              </div>
+              <label class="block text-[11px] text-slate-500 mb-1 text-center">Центр</label>
+              <input type="number" id="widthCenter" placeholder="—" oninput="onOpeningChange()"
+                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
             </div>
             <div>
-              <label class="block text-xs text-gray-400 mb-1">Этаж / Грузовой лифт</label>
-              <div class="flex gap-2">
-                <input id="modal-client-floor" type="text" placeholder="Этаж (напр. 4)" class="w-1/2 px-3 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
-                <select id="modal-client-elevator" class="w-1/2 px-3 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white">
-                  <option value="none">Без лифта</option>
-                  <option value="pass">Пассажирский</option>
-                  <option value="cargo">Грузовой лифт</option>
-                  <option value="house">Частный дом</option>
-                </select>
-              </div>
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs text-gray-400 mb-1">Адрес установки (объекта)</label>
-              <div class="flex gap-1.5">
-                <input id="modal-client-address" type="text" placeholder="г. Борисов, ул. Дёмина 39, кв. 12" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
-                <button type="button" onclick="App.routeFromInput('modal-client-address')" title="Маршрут в Яндекс Картах" class="px-3 rounded-xl bg-sky-600/20 border border-sky-500/40 text-sky-400 hover:bg-sky-600/30 transition flex items-center gap-1.5 text-xs font-semibold shrink-0">
-                  <i data-lucide="navigation" class="w-4 h-4"></i>
-                  <span class="hidden sm:inline">Маршрут</span>
-                </button>
-              </div>
+              <label class="block text-[11px] text-slate-500 mb-1 text-center">Низ</label>
+              <input type="number" id="widthBottom" placeholder="—" oninput="onOpeningChange()"
+                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
             </div>
           </div>
         </div>
 
-        <!-- Дополнительные контакты -->
-        <div class="pt-3 border-t border-graphite-800">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
-              <i data-lucide="users" class="w-4 h-4"></i> 2. Дополнительные контакты (строители, родственники)
-            </h4>
-            <button type="button" onclick="App.addExtraContactRow()" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold transition">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Добавить контакт
+        <!-- Высота проёма в 3 точках -->
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-700 uppercase">Высота проёма</span>
+            <span id="minHeightBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">Мин: — мм</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1 text-center">Лево</label>
+              <input type="number" id="heightLeft" placeholder="—" oninput="onOpeningChange()"
+                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1 text-center">Центр</label>
+              <input type="number" id="heightCenter" placeholder="—" oninput="onOpeningChange()"
+                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1 text-center">Право</label>
+              <input type="number" id="heightRight" placeholder="—" oninput="onOpeningChange()"
+                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Доп. параметры проёма (старая коробка, перепад пола) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Старая коробка Ш × В (мм)</label>
+          <div class="grid grid-cols-2 gap-1.5">
+            <input type="number" id="oldDoorWidth" placeholder="Ширина" oninput="saveDraft()"
+              class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+            <input type="number" id="oldDoorHeight" placeholder="Высота" oninput="saveDraft()"
+              class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500 mb-1">Перепад уровня пола (мм)</label>
+          <input type="number" id="floorDiff" placeholder="Напр: 15" oninput="saveDraft()"
+            class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+        </div>
+        <div class="flex items-end">
+          <button type="button" onclick="autoRecommendFrame()" class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="wand-2" class="w-4 h-4 text-amber-600"></i>
+            Подобрать коробку по проёму
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. КОНФИГУРАЦИЯ КОРОБКИ (ШАГ 30 ММ) И ВЫЛЕТА НАЛИЧНИКА -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-3">
+        <i data-lucide="door-open" class="w-4 h-4 text-amber-500"></i>
+        3. Параметры дверной коробки и наличника
+      </h2>
+
+      <!-- Тип двери: Уличная без МДФ / Квартирная с МДФ -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-slate-500 mb-1.5">Исполнение двери (влияет на сетку вылета наличника)</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button type="button" id="btnTypeStreet" onclick="setDoorType('street')"
+            class="p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-amber-500 bg-amber-50/70">
+            <div>
+              <div class="font-bold text-sm text-slate-900">Уличная (без накладок МДФ)</div>
+              <div class="text-[11px] text-slate-500">Вылет наличника: 17 — 97 мм (шаг 10 мм, стд. 67 мм)</div>
+            </div>
+            <i data-lucide="sun-snow" class="w-5 h-5 text-amber-600 shrink-0"></i>
+          </button>
+
+          <button type="button" id="btnTypeApt" onclick="setDoorType('apartment')"
+            class="p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-slate-200 bg-white hover:bg-slate-50">
+            <div>
+              <div class="font-bold text-sm text-slate-900">Квартирная (с накладками МДФ)</div>
+              <div class="text-[11px] text-slate-500">Вылет: 15 — 105 мм (шаг 10 мм, вместо 65 → 67 мм)</div>
+            </div>
+            <i data-lucide="building-2" class="w-5 h-5 text-slate-500 shrink-0"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Выбор размера коробки с шагом 30 мм -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- ШИРИНА КОРОБКИ -->
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-700 uppercase">Ширина коробки (шаг 30 мм)</span>
+            <span id="widthStdBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Стандарт</span>
+          </div>
+
+          <!-- Быстрые кнопки стандартов 860 и 950 -->
+          <div class="grid grid-cols-2 gap-2 mb-2.5">
+            <button type="button" onclick="setFrameWidth(860)" id="presetW860"
+              class="py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900">
+              860 мм (Стандарт)
+            </button>
+            <button type="button" onclick="setFrameWidth(950)" id="presetW950"
+              class="py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-white text-slate-700 border-slate-300 hover:bg-slate-100">
+              950 мм (Стандарт)
             </button>
           </div>
-          <div class="flex flex-wrap gap-1.5 mb-3">
-            <button type="button" onclick="App.addExtraContactRow('Строители / Прораб')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Строители / Прораб</button>
-            <button type="button" onclick="App.addExtraContactRow('Супруг(а)')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Супруг(а)</button>
-            <button type="button" onclick="App.addExtraContactRow('Родственники')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Родственники</button>
-            <button type="button" onclick="App.addExtraContactRow('Дизайнер')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Дизайнер</button>
-          </div>
-          <div id="modal-extra-contacts-list" class="space-y-2"></div>
-        </div>
 
-        <!-- Паспортные данные -->
-        <div class="pt-3 border-t border-graphite-800">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-1.5">
-            <i data-lucide="CreditCard" class="w-4 h-4"></i> 3. Паспортные данные (для договора)
-          </h4>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="block text-xs text-gray-400 mb-1">ФИО по паспорту (дублируется с карточкой)</label>
-              <input id="modal-passport-fio" type="text" oninput="App.syncModalFio('passport')" placeholder="Иванов Иван Иванович" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Серия и номер паспорта / ID-карты</label>
-              <input id="modal-passport-series" type="text" placeholder="MP 1234567" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white uppercase" />
-            </div>
-            <div>
-              <label class="block text-xs text-gray-400 mb-1">Когда выдан документ</label>
-              <input id="modal-passport-date" type="text" placeholder="12.05.2019" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-xs text-gray-400 mb-1">Каким органом выдан документ</label>
-              <input id="modal-passport-issued" type="text" placeholder="Борисовским РУВД Минской обл." class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
-            </div>
-            <div class="sm:col-span-2">
-              <div class="flex items-center justify-between mb-1">
-                <label class="text-xs text-gray-400">Место прописки (регистрации) по паспорту</label>
-                <button type="button" onclick="App.copyAddressToRegistration()" class="text-[11px] text-amber-400 hover:underline font-medium">
-                  Совпадает с адресом объекта
-                </button>
-              </div>
-              <div class="flex gap-1.5">
-                <input id="modal-passport-reg" type="text" placeholder="г. Борисов, ул. ..." class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
-                <button type="button" onclick="App.routeFromInput('modal-passport-reg')" title="Маршрут в Яндекс Картах" class="px-3 rounded-xl bg-sky-600/20 border border-sky-500/40 text-sky-400 hover:bg-sky-600/30 transition flex items-center justify-center shrink-0">
-                  <i data-lucide="map-pin" class="w-4 h-4"></i>
-                </button>
-              </div>
-            </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="stepFrameWidth(-30)"
+              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
+              −30 мм
+            </button>
+
+            <select id="frameWidthSelect" onchange="setFrameWidth(parseInt(this.value))"
+              class="flex-1 text-center font-extrabold text-base py-2 px-2 rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
+            </select>
+
+            <button type="button" onclick="stepFrameWidth(30)"
+              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
+              +30 мм
+            </button>
           </div>
         </div>
-      </div>
 
-      <div class="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-graphite-700 bg-graphite-850">
-        <button onclick="App.closeClientModal()" class="px-4 py-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 text-sm text-gray-300">Отмена</button>
-        <button onclick="App.saveClientModal()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-sm">Сохранить данные</button>
-      </div>
-    </div>
-  </div>
+        <!-- ВЫСОТА КОРОБКИ -->
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-700 uppercase">Высота коробки (шаг 30 мм)</span>
+            <span id="heightStdBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Стандарт</span>
+          </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО: ЖУРНАЛ ЗАКАЗОВ -->
-  <div id="orders-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
-    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-graphite-700 bg-graphite-850">
-        <div class="flex items-center gap-2">
-          <i data-lucide="folder-kanban" class="w-5 h-5 text-amber-400"></i>
-          <h3 class="font-bold text-base sm:text-lg text-white">Журнал заказов</h3>
+          <!-- Быстрая кнопка стандарта 2050 -->
+          <div class="mb-2.5">
+            <button type="button" onclick="setFrameHeight(2050)" id="presetH2050"
+              class="w-full py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900">
+              2050 мм (Стандарт)
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="stepFrameHeight(-30)"
+              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
+              −30 мм
+            </button>
+
+            <select id="frameHeightSelect" onchange="setFrameHeight(parseInt(this.value))"
+              class="flex-1 text-center font-extrabold text-base py-2 px-2 rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
+            </select>
+
+            <button type="button" onclick="stepFrameHeight(30)"
+              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
+              +30 мм
+            </button>
+          </div>
         </div>
-        <button onclick="App.closeOrdersModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
       </div>
-      <div class="p-4 border-b border-graphite-800">
-        <input id="orders-search-input" type="text" oninput="App.renderOrdersList()" placeholder="Поиск по ФИО, адресу или телефону..." class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
-      </div>
-      <div id="orders-modal-list" class="p-4 max-h-[60vh] overflow-y-auto custom-scroll space-y-2.5"></div>
-      <div class="flex justify-between items-center px-5 py-3.5 border-t border-graphite-700 bg-graphite-850">
-        <button onclick="App.createNewOrder(); App.closeOrdersModal();" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-xs sm:text-sm">
-          <i data-lucide="plus" class="w-4 h-4"></i> Создать новый пустой заказ
-        </button>
-        <button onclick="App.closeOrdersModal()" class="px-4 py-2 rounded-xl bg-graphite-800 text-sm text-gray-300">Закрыть</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО: СКАНЕР ФОТО РУКОПИСНОГО БЛАНКА -->
-  <div id="ocr-modal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl my-auto">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-graphite-700 bg-graphite-850">
-        <div class="flex items-center gap-2">
-          <i data-lucide="scan-line" class="w-5 h-5 text-amber-400"></i>
+      <!-- ВЫЛЕТ НАЛИЧНИКА ЗА ГАБАРИТ КОРОБКИ -->
+      <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-3.5 mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
           <div>
-            <h3 class="font-bold text-base text-white">Загрузка и распознавание рукописного бланка</h3>
-            <p class="text-xs text-gray-400">Сфотографируйте заполненный на адресе бланк А5 — программа извлечёт размеры в поля</p>
+            <span class="text-xs font-bold text-slate-800 uppercase">Вылет наличника за габарит коробки</span>
+            <p id="architraveScaleHint" class="text-[11px] text-slate-600">
+              Уличная (без МДФ): от 17 до 97 мм с шагом 10 мм (67 мм — по умолчанию)
+            </p>
+          </div>
+          <button type="button" onclick="setArchitrave(67)"
+            class="text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded-md transition">
+            Сбросить на 67 мм (Стандарт)
+          </button>
+        </div>
+
+        <!-- Кнопки быстрого выбора вылета наличника -->
+        <div id="architraveButtonsContainer" class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 mt-2">
+        </div>
+      </div>
+
+      <!-- СВОДКА РАСЧЁТОВ: ГАБАРИТ ПО НАЛИЧНИКУ, ЗАЗОРЫ И ПЕРЕКРЫТИЕ -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-900 text-white p-3.5 rounded-xl">
+        <div>
+          <div class="text-[11px] text-slate-400">Размер коробки</div>
+          <div id="summaryFrameSize" class="text-base font-extrabold text-amber-400">860 × 2050 мм</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-slate-400">Габарит по наличнику</div>
+          <div id="summaryOuterSize" class="text-base font-extrabold text-white">994 × 2117 мм</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-slate-400">Монтажный зазор (Ш / В)</div>
+          <div id="summaryGaps" class="text-sm font-bold text-slate-200">Введите проём</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-slate-400">Запас наличника</div>
+          <div id="summaryOverlap" class="text-sm font-bold text-slate-200">Введите проём</div>
+        </div>
+      </div>
+
+      <!-- СТОРОНА ОТКРЫВАНИЯ -->
+      <div class="mt-4 pt-3 border-t border-slate-100">
+        <label class="block text-xs font-medium text-slate-500 mb-2">Сторона и направление открывания</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button type="button" onclick="setOpeningSide('Наружное Правое')" id="open_out_right"
+            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-slate-900 text-white border-slate-900">
+            Наружное Правое
+          </button>
+          <button type="button" onclick="setOpeningSide('Наружное Левое')" id="open_out_left"
+            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
+            Наружное Левое
+          </button>
+          <button type="button" onclick="setOpeningSide('Внутреннее Правое')" id="open_in_right"
+            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
+            Внутреннее Правое
+          </button>
+          <button type="button" onclick="setOpeningSide('Внутреннее Левое')" id="open_in_left"
+            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
+            Внутреннее Левое
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ И ПРИМЕЧАНИЯ -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-3">
+        <i data-lucide="wrench" class="w-4 h-4 text-amber-500"></i>
+        4. Доп. работы и особенности монтажа
+      </h2>
+
+      <!-- Быстрые теги -->
+      <div class="flex flex-wrap gap-1.5 mb-3" id="quickTagsContainer">
+      </div>
+
+      <textarea id="notes" rows="3" placeholder="Комментарии по замеру, комплектации, замкам, доборам или демонтажу..." oninput="saveDraft()"
+        class="w-full p-3 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"></textarea>
+    </section>
+
+    <!-- 5. ФОТОФИКСАЦИЯ (КАМЕРА ИЛИ ГАЛЕРЕЯ) -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <i data-lucide="camera" class="w-4 h-4 text-amber-500"></i>
+            5. Фотографии проёма (<span id="photoCountLabel">0</span>)
+          </h2>
+          <p class="text-xs text-slate-500">Сделайте снимок камерой или прикрепите готовые фото из галереи</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Кнопка Сделать фото (Камера) -->
+          <label class="cursor-pointer inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs px-3 py-2 rounded-lg shadow-sm transition">
+            <i data-lucide="camera" class="w-4 h-4"></i>
+            <span>Сделать фото</span>
+            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)" />
+          </label>
+
+          <!-- Кнопка Из галереи -->
+          <label class="cursor-pointer inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs px-3 py-2 rounded-lg shadow-sm transition">
+            <i data-lucide="images" class="w-4 h-4"></i>
+            <span>Из галереи</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event)" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Сетка добавленных фотографий -->
+      <div id="photosGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      </div>
+      <div id="noPhotosPlaceholder" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs">
+        Фотографии ещё не добавлены. Нажмите «Сделать фото» или «Из галереи».
+      </div>
+    </section>
+
+  </main>
+
+  <!-- МОДАЛЬНОЕ ОКНО: СКАНИРОВАНИЕ ЗАПОЛНЕННОГО ОТ РУКИ БЛАНКА -->
+  <div id="scanModal" class="no-print fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950">
+            <i data-lucide="scan-line" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Оцифровка бумажного бланка замера</h3>
+            <p class="text-xs text-slate-500">Загрузите фото рукописного бланка для автоматического переноса размеров в поля</p>
           </div>
         </div>
-        <button onclick="App.closeOcrModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
+        <button onclick="closeScanModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="p-5 max-h-[78vh] overflow-y-auto custom-scroll space-y-4">
-        <div class="flex flex-wrap gap-2">
-          <label class="cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-xs sm:text-sm transition">
-            <i data-lucide="camera" class="w-4 h-4"></i> Сфотографировать бланк
-            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleBlankImageUpload(event)" />
+      <!-- Настройка API ключа Gemini для автоматического ИИ-распознавания почерка -->
+      <div class="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <label class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+            Ключ Gemini API (для авто-чтения почерка ИИ):
           </label>
-          <label class="cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-600 text-gray-200 font-semibold text-xs sm:text-sm transition">
-            <i data-lucide="image" class="w-4 h-4 text-sky-400"></i> Выбрать фото из галереи
-            <input type="file" accept="image/*" class="hidden" onchange="App.handleBlankImageUpload(event)" />
-          </label>
+          <span class="text-[11px] text-slate-400">Сохраняется локально в браузере</span>
         </div>
-
-        <div id="ocr-status-box" class="hidden p-3 rounded-xl bg-graphite-950 border border-graphite-700 text-xs text-amber-300 flex items-center gap-2">
-          <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
-          <span id="ocr-status-text">Анализируем изображение бланка...</span>
-        </div>
-
-        <div id="ocr-workspace" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-graphite-950 border border-graphite-800 rounded-xl p-2 flex flex-col items-center">
-            <span class="text-[11px] text-gray-400 mb-1.5">Загруженное фото бланка (можно сверять числа):</span>
-            <img id="ocr-preview-img" src="" alt="Скан бланка" class="max-h-80 object-contain rounded-lg border border-graphite-800" />
-          </div>
-
-          <div class="bg-graphite-950 border border-graphite-800 rounded-xl p-3.5 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-amber-400 uppercase">Распознанные параметры бланка</span>
-              <span class="text-[11px] text-gray-400">Проверьте перед подстановкой</span>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2">
-              <div>
-                <label class="block text-[11px] text-gray-400">Проём Ш (мм)</label>
-                <input id="ocr-op-w" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white font-bold" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Проём В (мм)</label>
-                <input id="ocr-op-h" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white font-bold" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Стена Г (мм)</label>
-                <input id="ocr-op-d" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white font-bold" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Старая кор. Ш</label>
-                <input id="ocr-old-w" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Старая кор. В</label>
-                <input id="ocr-old-h" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Толщ. кор.</label>
-                <input id="ocr-old-d" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Ст. налич. Ш</label>
-                <input id="ocr-arch-w" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Ст. налич. В</label>
-                <input id="ocr-arch-h" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Откос Ш×В</label>
-                <div class="flex gap-1">
-                  <input id="ocr-slope-w" type="number" placeholder="Ш" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
-                  <input id="ocr-slope-h" type="number" placeholder="В" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
-                </div>
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">До перем. Снар.</label>
-                <input id="ocr-lintel-out" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">До перем. Внутр.</label>
-                <input id="ocr-lintel-in" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
-              </div>
-              <div>
-                <label class="block text-[11px] text-gray-400">Новая дверь Ш×В</label>
-                <div class="flex gap-1">
-                  <input id="ocr-rec-w" type="number" placeholder="860" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-amber-400 font-bold" />
-                  <input id="ocr-rec-h" type="number" placeholder="2050" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-amber-400 font-bold" />
-                </div>
-              </div>
-            </div>
-          </div>
+        <div class="flex gap-2 mt-1.5">
+          <input type="password" id="geminiApiKeyInput" placeholder="Вставьте API ключ (AIzaSy...) или оставьте пустым для интерактивного режима"
+            onchange="saveApiKey()"
+            class="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-amber-500 outline-none bg-white" />
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-graphite-700 bg-graphite-850">
-        <button onclick="App.closeOcrModal()" class="px-4 py-2 rounded-xl bg-graphite-800 text-sm text-gray-300">Отмена</button>
-        <button onclick="App.applyOcrDataToMeasure()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-sm flex items-center gap-1.5">
-          <i data-lucide="check-circle-2" class="w-4 h-4"></i> Подставить размеры в замер
-        </button>
+      <!-- Кнопки загрузки фото бланка -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
+        <label class="cursor-pointer flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow transition">
+          <i data-lucide="camera" class="w-4 h-4"></i>
+          <span>Сфотографировать бланк</span>
+          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleBlankPhotoSelected(event)" />
+        </label>
+
+        <label class="cursor-pointer flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shadow transition">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span>Выбрать фото бланка из галереи</span>
+          <input type="file" accept="image/*" class="hidden" onchange="handleBlankPhotoSelected(event)" />
+        </label>
+      </div>
+
+      <!-- Статус анализа -->
+      <div id="scanStatusBox" class="hidden mt-3 p-3 rounded-xl text-xs font-medium"></div>
+
+      <!-- Предпросмотр бланка и интерактивная сверка данных -->
+      <div id="scanPreviewArea" class="hidden mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-bold text-slate-700">Снимок бланка</span>
+            <label class="inline-flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
+              <input type="checkbox" id="attachBlankToPhotos" checked class="rounded text-amber-500" />
+              <span>Прикрепить бланк к фотоотчёту</span>
+            </label>
+          </div>
+          <div class="border border-slate-300 rounded-xl overflow-hidden bg-slate-900 max-h-80 flex items-center justify-center">
+            <img id="scanBlankImg" src="" alt="Бланк" class="max-h-80 w-auto object-contain" />
+          </div>
+          <button type="button" onclick="runAiBlankExtraction()" id="btnReRunAi"
+            class="mt-2 w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="cpu" class="w-4 h-4"></i>
+            <span>Распознать данные с фото автоматически</span>
+          </button>
+        </div>
+
+        <!-- Быстрая проверка / корректировка распознанных полей -->
+        <div class="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="text-xs font-bold text-slate-800 border-b border-slate-200 pb-1.5">
+            Извлечённые данные (проверьте перед подстановкой):
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-500">Клиент</label>
+              <input type="text" id="scan_clientName" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Телефон</label>
+              <input type="text" id="scan_clientPhone" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-slate-500">Адрес</label>
+            <input type="text" id="scan_clientAddress" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5">
+            <div>
+              <label class="block text-[10px] text-slate-500">Ш. Верх</label>
+              <input type="number" id="scan_wTop" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Ш. Центр</label>
+              <input type="number" id="scan_wCenter" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Ш. Низ</label>
+              <input type="number" id="scan_wBottom" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5">
+            <div>
+              <label class="block text-[10px] text-slate-500">В. Лево</label>
+              <input type="number" id="scan_hLeft" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">В. Центр</label>
+              <input type="number" id="scan_hCenter" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">В. Право</label>
+              <input type="number" id="scan_hRight" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-1.5">
+            <div>
+              <label class="block text-[10px] text-slate-500">Коробка Ш (мм)</label>
+              <input type="number" id="scan_frameW" placeholder="860 / 950" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Коробка В (мм)</label>
+              <input type="number" id="scan_frameH" placeholder="2050" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Наличник (мм)</label>
+              <input type="number" id="scan_architrave" placeholder="67" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <div>
+              <label class="block text-[10px] text-slate-500">Глубина стены (мм)</label>
+              <input type="number" id="scan_wallDepth" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500">Перепад пола (мм)</label>
+              <input type="number" id="scan_floorDiff" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-slate-500">Примечания с бланка</label>
+            <input type="text" id="scan_notes" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+          </div>
+
+          <button type="button" onclick="applyScannedDataToForm()"
+            class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span>Подставить данные в основной замер</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- МОДАЛЬНОЕ ОКНО: ПРЕДПРОСМОТР ПЕЧАТИ (ДЛЯ УДОБСТВА В БРАУЗЕРЕ И СМАРТФОНЕ) -->
-  <div id="print-preview-modal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-print">
-    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-auto">
-      <div class="flex items-center justify-between px-5 py-3.5 border-b border-graphite-700 bg-graphite-850">
-        <div class="flex items-center gap-2">
-          <i data-lucide="printer" class="w-5 h-5 text-amber-400"></i>
-          <h3 id="print-preview-title" class="font-bold text-base text-white">Предпросмотр документа А4</h3>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="window.print()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-xs sm:text-sm">
-            <i data-lucide="printer" class="w-4 h-4"></i> Отправить на печать / PDF
+  <!-- ===================================================================== -->
+  <!-- ПЕЧАТНАЯ ФОРМА №1: ПУСТОЙ БЛАНК А4 ПОПОЛАМ (2 БЛАНКА НА ЛИСТЕ А4)     -->
+  <!-- ===================================================================== -->
+  <div id="print-blank-container" class="hidden"></div>
+
+  <!-- ===================================================================== -->
+  <!-- ПЕЧАТНАЯ ФОРМА №2: ЗАПОЛНЕННЫЙ ЗАМЕРОЧНЫЙ ЛИСТ А4                     -->
+  <!-- ===================================================================== -->
+  <div id="print-filled-container" class="hidden"></div>
+
+  <script>
+    // --- КОНСТАНТЫ И СЕТКИ РАЗМЕРОВ ---
+    // Ширина коробки: база 860 и 950, шаг 30 мм в обе стороны
+    const FRAME_WIDTHS = [740, 770, 800, 830, 860, 890, 920, 950, 980, 1010, 1040, 1070, 1100];
+    const STD_WIDTHS = [860, 950];
+
+    // Высота коробки: база 2050, шаг 30 мм в обе стороны
+    const FRAME_HEIGHTS = [1870, 1900, 1930, 1960, 1990, 2020, 2050, 2080, 2110, 2140, 2170, 2200, 2230];
+    const STD_HEIGHTS = [2050];
+
+    // Вылет наличника за габарит коробки:
+    // 1) Уличная без МДФ: от 17 до 97 с шагом 10 мм
+    const ARCHITRAVE_STREET = [17, 27, 37, 47, 57, 67, 77, 87, 97];
+    // 2) Квартирная с МДФ: от 15 до 105 с шагом 10 мм, но вместо 65 -> 67 мм
+    const ARCHITRAVE_APT = [15, 25, 35, 45, 55, 67, 75, 85, 95, 105];
+
+    const QUICK_TAGS = [
+      'Демонтаж старой двери',
+      'Резать порог',
+      'Демонтаж штукатурки 5 м.п.',
+      'Демонтаж откоса из ГКЛ',
+      'Расширение проёма',
+      'Закладка проёма сверху',
+      'Усиление проёма металлом',
+      'Подъём без лифта'
+    ];
+
+    // Текущее состояние конфигурации
+    let state = {
+      doorType: 'street',      // 'street' (Уличная без МДФ) | 'apartment' (Квартирная с МДФ)
+      frameWidth: 860,         // по умолчанию стандарт 860
+      frameHeight: 2050,       // по умолчанию стандарт 2050
+      architrave: 67,          // по умолчанию всегда 67 мм
+      openingSide: 'Наружное Правое',
+      selectedTags: [],
+      photos: []               // массив { id, dataUrl, caption }
+    };
+
+    let currentScanImageBase64 = null;
+
+    // --- ИНИЦИАЛИЗАЦИЯ ---
+    window.addEventListener('DOMContentLoaded', () => {
+      initFrameSelects();
+      renderArchitraveButtons();
+      renderQuickTags();
+      loadApiKey();
+
+      // По требованию п.4 все поля ввода при открытии чистые
+      clearAllFields(false);
+      lucide.createIcons();
+    });
+
+    function initFrameSelects() {
+      const wSelect = document.getElementById('frameWidthSelect');
+      wSelect.innerHTML = FRAME_WIDTHS.map(w => {
+        const isStd = STD_WIDTHS.includes(w);
+        const diff860 = w - 860;
+        const label = isStd
+          ? `${w} мм ★ СТАНДАРТ`
+          : `${w} мм (${diff860 > 0 ? '+' + diff860 : diff860} от 860)`;
+        return `<option value="${w}" ${w === state.frameWidth ? 'selected' : ''}>${label}</option>`;
+      }).join('');
+
+      const hSelect = document.getElementById('frameHeightSelect');
+      hSelect.innerHTML = FRAME_HEIGHTS.map(h => {
+        const isStd = STD_HEIGHTS.includes(h);
+        const diff = h - 2050;
+        const label = isStd
+          ? `${h} мм ★ СТАНДАРТ`
+          : `${h} мм (${diff > 0 ? '+' + diff : diff} от 2050)`;
+        return `<option value="${h}" ${h === state.frameHeight ? 'selected' : ''}>${label}</option>`;
+      }).join('');
+    }
+
+    // --- ПЕРЕКЛЮЧЕНИЕ ТИПА ДВЕРИ И ВЫЛЕТА НАЛИЧНИКА ---
+    function setDoorType(type) {
+      state.doorType = type;
+      const scale = type === 'street' ? ARCHITRAVE_STREET : ARCHITRAVE_APT;
+
+      // Если текущий вылет не входит в новую шкалу — ставим стандарт 67 мм
+      if (!scale.includes(state.architrave)) {
+        state.architrave = 67;
+      }
+
+      const btnStreet = document.getElementById('btnTypeStreet');
+      const btnApt = document.getElementById('btnTypeApt');
+      const hint = document.getElementById('architraveScaleHint');
+
+      if (type === 'street') {
+        btnStreet.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-amber-500 bg-amber-50/70';
+        btnApt.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-slate-200 bg-white hover:bg-slate-50';
+        hint.textContent = 'Уличная (без МДФ): от 17 до 97 мм с шагом 10 мм (67 мм — стандарт по умолчанию)';
+      } else {
+        btnApt.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-amber-500 bg-amber-50/70';
+        btnStreet.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-slate-200 bg-white hover:bg-slate-50';
+        hint.textContent = 'Квартирная (с МДФ): от 15 до 105 мм с шагом 10 мм, кроме 67 мм вместо 65 мм (67 мм — стандарт)';
+      }
+
+      renderArchitraveButtons();
+      updateCalculations();
+      saveDraft();
+    }
+
+    function renderArchitraveButtons() {
+      const container = document.getElementById('architraveButtonsContainer');
+      const scale = state.doorType === 'street' ? ARCHITRAVE_STREET : ARCHITRAVE_APT;
+
+      container.innerHTML = scale.map(val => {
+        const isSelected = val === state.architrave;
+        const isDefault67 = val === 67;
+        let btnClass = isSelected
+          ? 'bg-slate-900 text-amber-400 border-slate-900 ring-2 ring-amber-400 font-extrabold'
+          : isDefault67
+            ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold hover:bg-amber-200'
+            : 'bg-white text-slate-700 border-slate-300 font-semibold hover:bg-slate-100';
+
+        return `
+          <button type="button" onclick="setArchitrave(${val})"
+            class="py-2 px-1 rounded-lg border text-xs transition flex flex-col items-center justify-center ${btnClass}">
+            <span>${val} мм</span>
+            ${isDefault67 ? '<span class="text-[9px] uppercase tracking-tighter opacity-85">Стд</span>' : ''}
           </button>
-          <button onclick="App.closePrintPreview()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-      </div>
-      <div class="p-4
+        `;
+      }).join('');
+    }
+
+    function setArchitrave(val) {
+      state.architrave = val;
+      renderArchitraveButtons();
+      updateCalculations();
+      saveDraft();
+    }
+
+    // --- УПРАВЛЕНИЕ РАЗМЕРОМ КОРОБКИ (ШАГ 30 ММ) ---
+    function setFrameWidth(w) {
+      if (!FRAME_WIDTHS.includes(w)) {
+        // Приводим к ближайшему шагу 30 мм от 860
+        const steps = Math.round((w - 860) / 30);
+        w = 860 + steps * 30;
+        w = Math.max(FRAME_WIDTHS[0], Math.min(FRAME_WIDTHS[FRAME_WIDTHS.length - 1], w));
+      }
+      state.frameWidth = w;
+      document.getElementById('frameWidthSelect').value = w;
+
+      // Подсветка пресетов 860 и 950
+      document.getElementById('presetW860').className = w === 860
+        ? 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900'
+        : 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-white text-slate-700 border-slate-300 hover:bg-slate-100';
+
+      document.getElementById('presetW950').className = w === 950
+        ? 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900'
+        : 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-white text-slate-700 border-slate-300 hover:bg-slate-100';
+
+      const badge = document.getElementById('widthStdBadge');
+      if (STD_WIDTHS.includes(w)) {
+        badge.textContent = 'Стандарт';
+        badge.className = 'text-[11px] font-semibold px-
