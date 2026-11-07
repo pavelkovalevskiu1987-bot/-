@@ -1,800 +1,2376 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ЗамерМастер — Стальная Линия</title>
+  <title>Стальная линия — Экосистема замеров, расчётов и документов</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            graphite: {
+              950: '#111315',
+              900: '#1A1D21',
+              800: '#22262C',
+              700: '#2F353D',
+              600: '#3E4651'
+            },
+            brand: {
+              amber: '#F59E0B',
+              amberHover: '#D97706',
+              steel: '#38BDF8',
+              emerald: '#10B981'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body {
+      background-color: #111315;
+      color: #F3F4F6;
       font-family: 'Inter', sans-serif;
-      background-color: #f1f5f9;
-      color: #0f172a;
+      overflow-x: hidden;
       -webkit-tap-highlight-color: transparent;
     }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
+
+    /* Тонкий фирменный скроллбар */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
     }
-    input[type="number"] {
-      -moz-appearance: textfield;
+    ::-webkit-scrollbar-track {
+      background: #111315;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2F353D;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #F59E0B;
     }
 
-    /* Стили для печати */
+    /* Плавные переходы экранов */
+    .screen-fade {
+      animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Карточка модуля с подсветкой при наведении */
+    .module-card {
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .module-card:hover {
+      transform: translateY(-2px);
+    }
+    .module-card-entrance:hover {
+      border-color: rgba(245, 158, 11, 0.55);
+      box-shadow: 0 10px 28px -10px rgba(245, 158, 11, 0.18);
+    }
+    .module-card-interior:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 10px 28px -10px rgba(56, 189, 248, 0.18);
+    }
+
+    /* =========================================================================
+       ПЕЧАТНЫЕ СТИЛИ (ВАРИАНТ 1: БЛАНК А4 ПОПОЛАМ / ВАРИАНТ 2: ЗАПОЛНЕННЫЙ ЛИСТ)
+       ========================================================================= */
+    #printAreaContainer {
+      display: none;
+    }
     @media print {
       @page {
         size: A4 portrait;
-        margin: 8mm;
+        margin: 7mm;
       }
       body {
-        background: #ffffff !important;
+        background: #FFFFFF !important;
         color: #000000 !important;
       }
-      .no-print {
+      body > *:not(#printAreaContainer) {
         display: none !important;
       }
-      #print-blank-container,
-      #print-filled-container {
-        display: none;
-      }
-      body.print-mode-blank #print-blank-container {
+      #printAreaContainer {
         display: block !important;
+        width: 100%;
+        background: #FFFFFF !important;
+        color: #000000 !important;
       }
-      body.print-mode-filled #print-filled-container {
-        display: block !important;
-      }
-      .blank-half-a4 {
+      .half-a4-blank {
         height: 136mm;
         box-sizing: border-box;
         page-break-inside: avoid;
       }
-      .cut-line {
-        border-top: 1.5px dashed #64748b;
-        margin: 3mm 0;
+      .cut-line-a4 {
+        border-top: 1.5px dashed #475569;
+        margin: 3.5mm 0;
         position: relative;
       }
     }
   </style>
 </head>
-<body class="min-h-screen pb-24">
 
-  <!-- ВЕРХНЯЯ ПАНЕЛЬ (НЕ ПЕЧАТАЕТСЯ) -->
-  <header class="no-print sticky top-0 z-30 bg-slate-900 text-white shadow-md">
-    <div class="max-w-4xl mx-auto px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950 font-extrabold text-lg shadow">
-          СЛ
+<body class="min-h-screen flex flex-col bg-graphite-950 text-[#F3F4F6] selection:bg-brand-amber selection:text-graphite-950">
+
+  <!-- =========================================================================
+       ШАПКА ЭКОСИСТЕМЫ (ФИРМЕННЫЙ САЛОН «СТАЛЬНАЯ ЛИНИЯ»)
+       ========================================================================= -->
+  <header class="sticky top-0 z-30 bg-graphite-900/95 backdrop-blur-md border-b border-graphite-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
+      
+      <!-- Логотип и название салона -->
+      <div class="flex items-center gap-3.5 cursor-pointer group" onclick="AppRouter.navigate('dashboard')">
+        <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-brand-amber to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-400/30 group-hover:scale-105 transition-transform">
+          <i class="fa-solid fa-door-closed text-graphite-950 text-xl sm:text-2xl"></i>
         </div>
         <div>
-          <h1 class="font-bold text-base leading-tight">ЗамерМастер</h1>
-          <p class="text-[11px] text-slate-400">Входные двери • Шаг 30 мм</p>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] uppercase tracking-widest font-semibold text-brand-amber bg-brand-amber/10 border border-brand-amber/30 px-2 py-0.5 rounded-md">
+              Фирменный салон
+            </span>
+            <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-[#9CA3AF] bg-graphite-800 px-2 py-0.5 rounded-md border border-graphite-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Core v1.3
+            </span>
+          </div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-tight mt-0.5">
+            Стальная линия
+          </h1>
+          <p class="text-xs text-[#9CA3AF] hidden md:block">
+            Экосистема замеров, расчётов и документов
+          </p>
         </div>
       </div>
 
-      <!-- Кнопки быстрых действий -->
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <button onclick="openScanModal()" class="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs px-3 py-2 rounded-lg shadow transition">
-          <i data-lucide="scan-line" class="w-4 h-4"></i>
-          <span>Сканировать бланк</span>
+      <!-- Быстрые действия в шапке -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- Кнопка быстрого вызова журнала заказов -->
+        <button onclick="UIModals.openOrdersList()" 
+                class="flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs sm:text-sm font-medium text-[#F3F4F6] transition-colors"
+                title="База заказов">
+          <i class="fa-solid fa-folder-tree text-brand-amber"></i>
+          <span class="hidden sm:inline">База заказов</span>
+          <span id="headerOrdersCount" class="px-1.5 py-0.5 text-[11px] font-mono bg-graphite-950 text-brand-amber rounded-md border border-graphite-700">1</span>
         </button>
 
-        <button onclick="printBlankForm()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-medium text-xs px-2.5 py-2 rounded-lg transition" title="Распечатать пустой бланк А4 пополам (2 шт. на листе)">
-          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-amber-400"></i>
-          <span class="hidden sm:inline">Пустой бланк (А4/2)</span>
-          <span class="sm:hidden">Бланк</span>
+        <!-- Кнопка создания нового заказа -->
+        <button onclick="UIModals.openClientModal('create')" 
+                class="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-brand-amber hover:bg-brand-amberHover text-graphite-950 font-semibold text-xs sm:text-sm shadow-md shadow-amber-500/15 transition-all">
+          <i class="fa-solid fa-plus"></i>
+          <span>Новый заказ</span>
         </button>
 
-        <button onclick="printFilledForm()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3 py-2 rounded-lg shadow transition" title="Распечатать заполненный замерочный лист">
-          <i data-lucide="printer" class="w-4 h-4"></i>
-          <span>Печать замера</span>
-        </button>
-
-        <button onclick="clearAllFields(true)" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 transition" title="Очистить все поля">
-          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        <!-- Кнопка Бэкапа (Экспорт / Импорт) -->
+        <button onclick="UIModals.openBackupModal()" 
+                class="p-2 sm:p-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-[#9CA3AF] hover:text-white transition-colors"
+                title="Резервное копирование базы (Экспорт / Импорт JSON)">
+          <i class="fa-solid fa-database text-sm sm:text-base"></i>
         </button>
       </div>
+
     </div>
   </header>
 
-  <!-- ОСНОВНОЙ ИНТЕРФЕЙС ПРИЛОЖЕНИЯ -->
-  <main class="no-print max-w-4xl mx-auto px-3 pt-4 space-y-4">
+  <!-- =========================================================================
+       ОСНОВНОЙ КОНТЕЙНЕР ПРИЛОЖЕНИЯ
+       ========================================================================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 space-y-6">
 
-    <!-- 1. ДАННЫЕ КЛИЕНТА И АДРЕС -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-          <i data-lucide="user-check" class="w-4 h-4 text-amber-500"></i>
-          1. Данные объекта и клиента
-        </h2>
-        <input type="date" id="measureDate" class="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:border-amber-500" />
-      </div>
+    <!-- =======================================================================
+         ПАНЕЛЬ АКТИВНОГО ЗАКАЗА (СКВОЗНАЯ КАРТОЧКА КЛИЕНТА)
+         Отображается всегда и синхронизирует данные между всеми 8 блоками
+         ======================================================================= -->
+    <section id="activeOrderBanner" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+      <!-- Декоративная золотая полоса слева -->
+      <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-brand-amber via-amber-500 to-emerald-500"></div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">ФИО клиента</label>
-          <input type="text" id="clientName" placeholder="Введите имя..." oninput="saveDraft()"
-            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Телефон</label>
-          <input type="tel" id="clientPhone" placeholder="+375 (__) ___-__-__" oninput="saveDraft()"
-            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Адрес замера</label>
-          <input type="text" id="clientAddress" placeholder="Улица, дом, кв..." oninput="saveDraft()"
-            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none" />
-        </div>
-      </div>
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pl-2">
+        
+        <!-- Информация о текущем клиенте -->
+        <div class="space-y-2 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-brand-amber/15 text-brand-amber border border-brand-amber/30 flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt text-[10px]"></i>
+              Активный заказ
+            </span>
+            <span id="activeOrderNum" class="font-mono text-sm font-bold text-white bg-graphite-800 px-2.5 py-0.5 rounded-md border border-graphite-700">
+              СЛ-101
+            </span>
+            <button type="button" onclick="UIModals.openClientModal('edit', 'passport')" id="activeOrderPassportBadge"
+                    class="text-xs px-2.5 py-0.5 rounded-md border flex items-center gap-1.5 transition-colors hover:opacity-90 cursor-pointer"
+                    title="Нажмите для просмотра или редактирования паспортных данных">
+              <!-- Заполняется динамически -->
+            </button>
+            <span id="activeOrderDate" class="text-xs text-[#9CA3AF] font-mono ml-auto lg:ml-0">
+              <!-- Дата обновления -->
+            </span>
+          </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-slate-100">
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Этаж</label>
-          <input type="number" id="floor" placeholder="Напр: 4" oninput="saveDraft()"
-            class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
+          <div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <h2 id="activeClientName" class="text-lg sm:text-xl font-bold text-white tracking-tight">
+              —
+            </h2>
+            <a id="activeClientPhone" href="#"
+               onclick="return window.triggerPhoneCall(this.dataset.phone, event)"
+               title="Нажмите для вызова клиента с телефона"
+               class="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-brand-amber/10 hover:bg-brand-amber/20 border border-brand-amber/30 text-sm font-mono text-brand-amber transition-colors w-fit cursor-pointer">
+              <i class="fa-solid fa-phone-volume text-xs animate-pulse"></i>
+              <span>—</span>
+              <span class="text-[10px] font-sans uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand-amber text-graphite-950 font-bold">Вызов</span>
+            </a>
+          </div>
+
+          <!-- Дополнительные контакты (строители, родственники и т.д.) -->
+          <div id="activeExtraContactsWrap" class="hidden pt-0.5">
+            <div class="flex flex-wrap items-center gap-1.5" id="activeExtraContactsList">
+              <!-- Заполняется динамически -->
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs sm:text-sm text-[#9CA3AF]">
+            <a id="activeClientAddressLink" href="#" target="_blank" rel="noopener noreferrer"
+               onclick="return window.triggerYandexRoute(this.dataset.address, event)"
+               title="Открыть маршрут до адреса объекта в Яндекс.Картах"
+               class="group inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 hover:border-brand-amber/50 transition-all cursor-pointer">
+              <i class="fa-solid fa-location-dot text-brand-amber"></i>
+              <span id="activeClientAddress" class="text-[#F3F4F6] group-hover:text-brand-amber transition-colors font-medium">—</span>
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-amber bg-brand-amber/10 border border-brand-amber/30 px-1.5 py-0.5 rounded">
+                <i class="fa-solid fa-route text-[10px]"></i>
+                <span>Маршрут</span>
+              </span>
+            </a>
+            <a id="activeClientRegAddressLink" href="#" target="_blank" rel="noopener noreferrer"
+               onclick="return window.triggerYandexRoute(this.dataset.address, event)"
+               title="Открыть маршрут до места прописки в Яндекс.Картах"
+               class="hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-graphite-800/70 hover:bg-graphite-700 border border-graphite-700 hover:border-sky-400/50 text-xs transition-all cursor-pointer">
+              <i class="fa-solid fa-house-user text-sky-400"></i>
+              <span>Прописка: <strong id="activeClientRegAddress" class="text-[#F3F4F6] font-normal">—</strong></span>
+              <i class="fa-solid fa-route text-sky-400 text-[10px] ml-0.5"></i>
+            </a>
+            <div class="flex items-center gap-1.5">
+              <i class="fa-solid fa-building text-[#9CA3AF]"></i>
+              <span>Этаж: <strong id="activeClientFloor" class="text-[#F3F4F6]">—</strong></span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <i class="fa-solid fa-elevator text-[#9CA3AF]"></i>
+              <span>Лифт: <strong id="activeClientElevator" class="text-[#F3F4F6]">—</strong></span>
+            </div>
+            <div id="activeClientNotesWrap" class="flex items-center gap-1.5 text-amber-300/90 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 hidden">
+              <i class="fa-regular fa-comment-dots"></i>
+              <span id="activeClientNotes" class="truncate max-w-xs sm:max-w-md"></span>
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Грузовой лифт</label>
-          <select id="elevator" onchange="saveDraft()" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
-            <option value="">Не указано</option>
-            <option value="Есть">Есть</option>
-            <option value="Нет (ручной подъём)">Нет (подъём)</option>
-            <option value="Частный дом">Частный дом</option>
-          </select>
+
+        <!-- Правая часть: Прогресс и кнопки управления клиентом -->
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-graphite-700/80">
+          <!-- Сводка готовности блоков по активному заказу -->
+          <div class="w-full sm:w-auto bg-graphite-800/90 border border-graphite-700 rounded-xl px-3.5 py-2 flex items-center justify-between sm:justify-start gap-3">
+            <div class="text-left">
+              <div class="text-[11px] text-[#9CA3AF]">Готовность блоков</div>
+              <div id="activeOrderProgressText" class="text-xs font-semibold text-white">0 из 8 заполнено</div>
+            </div>
+            <div class="w-10 h-10 rounded-lg bg-graphite-950 border border-graphite-700 flex items-center justify-center font-mono text-xs font-bold text-brand-amber" id="activeOrderProgressPercent">
+              0%
+            </div>
+          </div>
+
+          <button onclick="UIModals.openClientModal('edit')" 
+                  class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs sm:text-sm font-medium text-white transition-colors">
+            <i class="fa-solid fa-user-pen text-brand-amber"></i>
+            <span>Карточка и паспорт</span>
+          </button>
+
+          <button onclick="UIModals.openOrdersList()" 
+                  class="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs sm:text-sm font-medium text-[#9CA3AF] hover:text-white transition-colors"
+                  title="Сменить активный заказ">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <span class="sm:hidden lg:inline">Сменить</span>
+          </button>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Материал стен</label>
-          <select id="wallMaterial" onchange="saveDraft()" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
-            <option value="">Не указано</option>
-            <option value="Кирпич">Кирпич</option>
-            <option value="Бетон / Монолит">Бетон / Монолит</option>
-            <option value="Газосиликат / Блок">Газосиликат / Блок</option>
-            <option value="Дерево / Брус">Дерево / Брус</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Глубина стены (мм)</label>
-          <input type="number" id="wallDepth" placeholder="мм" oninput="saveDraft()"
-            class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-        </div>
+
       </div>
     </section>
 
-    <!-- 2. ЗАМЕР ПРОЁМА И СТАРОЙ ДВЕРИ -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-3">
-        <i data-lucide="ruler" class="w-4 h-4 text-amber-500"></i>
-        2. Размеры строительного проёма (мм)
-      </h2>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Ширина проёма в 3 точках -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-slate-700 uppercase">Ширина проёма</span>
-            <span id="minWidthBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">Мин: — мм</span>
-          </div>
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1 text-center">Верх</label>
-              <input type="number" id="widthTop" placeholder="—" oninput="onOpeningChange()"
-                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1 text-center">Центр</label>
-              <input type="number" id="widthCenter" placeholder="—" oninput="onOpeningChange()"
-                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1 text-center">Низ</label>
-              <input type="number" id="widthBottom" placeholder="—" oninput="onOpeningChange()"
-                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Высота проёма в 3 точках -->
-        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-slate-700 uppercase">Высота проёма</span>
-            <span id="minHeightBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">Мин: — мм</span>
-          </div>
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1 text-center">Лево</label>
-              <input type="number" id="heightLeft" placeholder="—" oninput="onOpeningChange()"
-                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1 text-center">Центр</label>
-              <input type="number" id="heightCenter" placeholder="—" oninput="onOpeningChange()"
-                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-[11px] text-slate-500 mb-1 text-center">Право</label>
-              <input type="number" id="heightRight" placeholder="—" oninput="onOpeningChange()"
-                class="w-full text-center font-bold text-base py-2 rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Доп. параметры проёма (старая коробка, перепад пола) -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
+    <!-- =======================================================================
+         ЭКРАН 0: ГЛАВНЫЙ ДАШБОРД (2 ВЕТВИ ЭКОСИСТЕМЫ)
+         ======================================================================= -->
+    <section id="screen-dashboard" class="screen-fade space-y-6">
+      
+      <!-- Переключатель фильтра ветвей для удобства на мобильных экранах -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Старая коробка Ш × В (мм)</label>
-          <div class="grid grid-cols-2 gap-1.5">
-            <input type="number" id="oldDoorWidth" placeholder="Ширина" oninput="saveDraft()"
-              class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-            <input type="number" id="oldDoorHeight" placeholder="Высота" oninput="saveDraft()"
-              class="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-500 mb-1">Перепад уровня пола (мм)</label>
-          <input type="number" id="floorDiff" placeholder="Напр: 15" oninput="saveDraft()"
-            class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-amber-500 outline-none" />
-        </div>
-        <div class="flex items-end">
-          <button type="button" onclick="autoRecommendFrame()" class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="wand-2" class="w-4 h-4 text-amber-600"></i>
-            Подобрать коробку по проёму
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. КОНФИГУРАЦИЯ КОРОБКИ (ШАГ 30 ММ) И ВЫЛЕТА НАЛИЧНИКА -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-3">
-        <i data-lucide="door-open" class="w-4 h-4 text-amber-500"></i>
-        3. Параметры дверной коробки и наличника
-      </h2>
-
-      <!-- Тип двери: Уличная без МДФ / Квартирная с МДФ -->
-      <div class="mb-4">
-        <label class="block text-xs font-medium text-slate-500 mb-1.5">Исполнение двери (влияет на сетку вылета наличника)</label>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button type="button" id="btnTypeStreet" onclick="setDoorType('street')"
-            class="p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-amber-500 bg-amber-50/70">
-            <div>
-              <div class="font-bold text-sm text-slate-900">Уличная (без накладок МДФ)</div>
-              <div class="text-[11px] text-slate-500">Вылет наличника: 17 — 97 мм (шаг 10 мм, стд. 67 мм)</div>
-            </div>
-            <i data-lucide="sun-snow" class="w-5 h-5 text-amber-600 shrink-0"></i>
-          </button>
-
-          <button type="button" id="btnTypeApt" onclick="setDoorType('apartment')"
-            class="p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-slate-200 bg-white hover:bg-slate-50">
-            <div>
-              <div class="font-bold text-sm text-slate-900">Квартирная (с накладками МДФ)</div>
-              <div class="text-[11px] text-slate-500">Вылет: 15 — 105 мм (шаг 10 мм, вместо 65 → 67 мм)</div>
-            </div>
-            <i data-lucide="building-2" class="w-5 h-5 text-slate-500 shrink-0"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Выбор размера коробки с шагом 30 мм -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <!-- ШИРИНА КОРОБКИ -->
-        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-slate-700 uppercase">Ширина коробки (шаг 30 мм)</span>
-            <span id="widthStdBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Стандарт</span>
-          </div>
-
-          <!-- Быстрые кнопки стандартов 860 и 950 -->
-          <div class="grid grid-cols-2 gap-2 mb-2.5">
-            <button type="button" onclick="setFrameWidth(860)" id="presetW860"
-              class="py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900">
-              860 мм (Стандарт)
-            </button>
-            <button type="button" onclick="setFrameWidth(950)" id="presetW950"
-              class="py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-white text-slate-700 border-slate-300 hover:bg-slate-100">
-              950 мм (Стандарт)
-            </button>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="stepFrameWidth(-30)"
-              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
-              −30 мм
-            </button>
-
-            <select id="frameWidthSelect" onchange="setFrameWidth(parseInt(this.value))"
-              class="flex-1 text-center font-extrabold text-base py-2 px-2 rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
-            </select>
-
-            <button type="button" onclick="stepFrameWidth(30)"
-              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
-              +30 мм
-            </button>
-          </div>
-        </div>
-
-        <!-- ВЫСОТА КОРОБКИ -->
-        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-slate-700 uppercase">Высота коробки (шаг 30 мм)</span>
-            <span id="heightStdBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Стандарт</span>
-          </div>
-
-          <!-- Быстрая кнопка стандарта 2050 -->
-          <div class="mb-2.5">
-            <button type="button" onclick="setFrameHeight(2050)" id="presetH2050"
-              class="w-full py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900">
-              2050 мм (Стандарт)
-            </button>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="stepFrameHeight(-30)"
-              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
-              −30 мм
-            </button>
-
-            <select id="frameHeightSelect" onchange="setFrameHeight(parseInt(this.value))"
-              class="flex-1 text-center font-extrabold text-base py-2 px-2 rounded-lg border border-slate-300 bg-white focus:border-amber-500 outline-none">
-            </select>
-
-            <button type="button" onclick="stepFrameHeight(30)"
-              class="px-3 py-2 bg-white hover:bg-slate-100 active:bg-slate-200 border border-slate-300 rounded-lg font-bold text-xs text-slate-700 shadow-sm transition">
-              +30 мм
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ВЫЛЕТ НАЛИЧНИКА ЗА ГАБАРИТ КОРОБКИ -->
-      <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-3.5 mb-4">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <div>
-            <span class="text-xs font-bold text-slate-800 uppercase">Вылет наличника за габарит коробки</span>
-            <p id="architraveScaleHint" class="text-[11px] text-slate-600">
-              Уличная (без МДФ): от 17 до 97 мм с шагом 10 мм (67 мм — по умолчанию)
-            </p>
-          </div>
-          <button type="button" onclick="setArchitrave(67)"
-            class="text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded-md transition">
-            Сбросить на 67 мм (Стандарт)
-          </button>
-        </div>
-
-        <!-- Кнопки быстрого выбора вылета наличника -->
-        <div id="architraveButtonsContainer" class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 mt-2">
-        </div>
-      </div>
-
-      <!-- СВОДКА РАСЧЁТОВ: ГАБАРИТ ПО НАЛИЧНИКУ, ЗАЗОРЫ И ПЕРЕКРЫТИЕ -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-900 text-white p-3.5 rounded-xl">
-        <div>
-          <div class="text-[11px] text-slate-400">Размер коробки</div>
-          <div id="summaryFrameSize" class="text-base font-extrabold text-amber-400">860 × 2050 мм</div>
-        </div>
-        <div>
-          <div class="text-[11px] text-slate-400">Габарит по наличнику</div>
-          <div id="summaryOuterSize" class="text-base font-extrabold text-white">994 × 2117 мм</div>
-        </div>
-        <div>
-          <div class="text-[11px] text-slate-400">Монтажный зазор (Ш / В)</div>
-          <div id="summaryGaps" class="text-sm font-bold text-slate-200">Введите проём</div>
-        </div>
-        <div>
-          <div class="text-[11px] text-slate-400">Запас наличника</div>
-          <div id="summaryOverlap" class="text-sm font-bold text-slate-200">Введите проём</div>
-        </div>
-      </div>
-
-      <!-- СТОРОНА ОТКРЫВАНИЯ -->
-      <div class="mt-4 pt-3 border-t border-slate-100">
-        <label class="block text-xs font-medium text-slate-500 mb-2">Сторона и направление открывания</label>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button type="button" onclick="setOpeningSide('Наружное Правое')" id="open_out_right"
-            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-slate-900 text-white border-slate-900">
-            Наружное Правое
-          </button>
-          <button type="button" onclick="setOpeningSide('Наружное Левое')" id="open_out_left"
-            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
-            Наружное Левое
-          </button>
-          <button type="button" onclick="setOpeningSide('Внутреннее Правое')" id="open_in_right"
-            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
-            Внутреннее Правое
-          </button>
-          <button type="button" onclick="setOpeningSide('Внутреннее Левое')" id="open_in_left"
-            class="open-side-btn py-2 px-3 rounded-lg border text-xs font-bold transition bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
-            Внутреннее Левое
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. ДОПОЛНИТЕЛЬНЫЕ РАБОТЫ И ПРИМЕЧАНИЯ -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-3">
-        <i data-lucide="wrench" class="w-4 h-4 text-amber-500"></i>
-        4. Доп. работы и особенности монтажа
-      </h2>
-
-      <!-- Быстрые теги -->
-      <div class="flex flex-wrap gap-1.5 mb-3" id="quickTagsContainer">
-      </div>
-
-      <textarea id="notes" rows="3" placeholder="Комментарии по замеру, комплектации, замкам, доборам или демонтажу..." oninput="saveDraft()"
-        class="w-full p-3 text-sm rounded-lg border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"></textarea>
-    </section>
-
-    <!-- 5. ФОТОФИКСАЦИЯ (КАМЕРА ИЛИ ГАЛЕРЕЯ) -->
-    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <div>
-          <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-            <i data-lucide="camera" class="w-4 h-4 text-amber-500"></i>
-            5. Фотографии проёма (<span id="photoCountLabel">0</span>)
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-brand-amber"></i>
+            <span>Рабочие блоки экосистемы</span>
           </h2>
-          <p class="text-xs text-slate-500">Сделайте снимок камерой или прикрепите готовые фото из галереи</p>
+          <p class="text-xs sm:text-sm text-[#9CA3AF]">
+            Выберите нужный блок. Все данные клиента автоматически передаются внутри текущего заказа.
+          </p>
         </div>
 
-        <div class="flex items-center gap-2">
-          <!-- Кнопка Сделать фото (Камера) -->
-          <label class="cursor-pointer inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs px-3 py-2 rounded-lg shadow-sm transition">
-            <i data-lucide="camera" class="w-4 h-4"></i>
-            <span>Сделать фото</span>
-            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)" />
-          </label>
-
-          <!-- Кнопка Из галереи -->
-          <label class="cursor-pointer inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs px-3 py-2 rounded-lg shadow-sm transition">
-            <i data-lucide="images" class="w-4 h-4"></i>
-            <span>Из галереи</span>
-            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event)" />
-          </label>
+        <div class="inline-flex p-1 rounded-xl bg-graphite-900 border border-graphite-700 self-start sm:self-auto">
+          <button onclick="DashboardView.setBranchFilter('all')" id="filterBtn-all"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-graphite-800 text-white shadow">
+            Все ветви (8)
+          </button>
+          <button onclick="DashboardView.setBranchFilter('entrance')" id="filterBtn-entrance"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-[#9CA3AF] hover:text-white">
+            Входные (3)
+          </button>
+          <button onclick="DashboardView.setBranchFilter('interior')" id="filterBtn-interior"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-[#9CA3AF] hover:text-white">
+            Межкомнатные (5)
+          </button>
         </div>
       </div>
 
-      <!-- Сетка добавленных фотографий -->
-      <div id="photosGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-      </div>
-      <div id="noPhotosPlaceholder" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs">
-        Фотографии ещё не добавлены. Нажмите «Сделать фото» или «Из галереи».
+      <!-- Сетка двух основных ветвей -->
+      <div id="branchesGrid" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- ===================================================================
+             ВЕТВЬ 1: ВХОДНЫЕ ДВЕРИ «СТАЛЬНАЯ ЛИНИЯ» (3 БЛОКА)
+             =================================================================== -->
+        <div id="branchContainer-entrance" class="lg:col-span-5 bg-graphite-900/90 border border-graphite-700 rounded-2xl p-4 sm:p-6 space-y-5 relative overflow-hidden">
+          <!-- Верхний акцент ветви -->
+          <div class="flex items-start justify-between gap-3 border-b border-graphite-700/80 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-brand-amber/15 border border-brand-amber/40 flex items-center justify-center text-brand-amber text-lg shadow-inner">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-brand-amber/15 text-brand-amber font-semibold">
+                    Ветвь 1
+                  </span>
+                  <span id="branchProgress-entrance" class="text-xs font-mono text-[#9CA3AF]">0/3</span>
+                </div>
+                <h3 class="text-base sm:text-lg font-bold text-white mt-0.5">
+                  Входные двери «Стальная линия»
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          <!-- Список карточек блоков Ветви 1 -->
+          <div id="entranceModulesList" class="space-y-3.5">
+            <!-- Генерируется динамически из реестра модулей -->
+          </div>
+        </div>
+
+        <!-- ===================================================================
+             ВЕТВЬ 2: МЕЖКОМНАТНЫЕ ДВЕРИ (5 БЛОКОВ)
+             =================================================================== -->
+        <div id="branchContainer-interior" class="lg:col-span-7 bg-graphite-900/90 border border-graphite-700 rounded-2xl p-4 sm:p-6 space-y-5 relative overflow-hidden">
+          <!-- Верхний акцент ветви -->
+          <div class="flex items-start justify-between gap-3 border-b border-graphite-700/80 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-400/40 flex items-center justify-center text-sky-400 text-lg shadow-inner">
+                <i class="fa-solid fa-door-open"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/15 text-sky-400 font-semibold">
+                    Ветвь 2
+                  </span>
+                  <span id="branchProgress-interior" class="text-xs font-mono text-[#9CA3AF]">0/5</span>
+                </div>
+                <h3 class="text-base sm:text-lg font-bold text-white mt-0.5">
+                  Межкомнатные двери
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          <!-- Список карточек блоков Ветви 2 -->
+          <div id="interiorModulesList" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <!-- Генерируется динамически из реестра модулей -->
+          </div>
+        </div>
+
       </div>
     </section>
+
+    <!-- =======================================================================
+         ИЗОЛИРОВАННЫЕ ЭКРАНЫ ДЛЯ ВСЕХ 8 МОДУЛЕЙ ЭКОСИСТЕМЫ
+         Каждый экран имеет собственную навигацию, переключатель статуса
+         и выделенный рабочий контейнер #workspace-<moduleId> для Этапов 2-9
+         ======================================================================= -->
+    <div id="moduleScreensContainer">
+
+      <!-- 1. ВХОДНЫЕ ДВЕРИ: ЗАМЕРЫ ВХОДНЫХ ДВЕРЕЙ -->
+      <section id="screen-entranceMeasure" data-module="entranceMeasure" class="hidden screen-fade space-y-5">
+        <div id="header-entranceMeasure"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 2]: Контейнер модуля «Замеры входных дверей» -->
+        <div id="workspace-entranceMeasure" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 2. ВХОДНЫЕ ДВЕРИ: СЧЁТ-ФАКТУРА -->
+      <section id="screen-entranceInvoice" data-module="entranceInvoice" class="hidden screen-fade space-y-5">
+        <div id="header-entranceInvoice"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 3]: Контейнер модуля «Счёт-фактура (Входные двери)» -->
+        <div id="workspace-entranceInvoice" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 3. ВХОДНЫЕ ДВЕРИ: ДОГОВОР -->
+      <section id="screen-entranceContract" data-module="entranceContract" class="hidden screen-fade space-y-5">
+        <div id="header-entranceContract"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 4]: Контейнер модуля «Договор (Входные двери)» -->
+        <div id="workspace-entranceContract" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 4. МЕЖКОМНАТНЫЕ ДВЕРИ: ЗАМЕРЫ МЕЖКОМНАТНЫХ ДВЕРЕЙ -->
+      <section id="screen-interiorMeasure" data-module="interiorMeasure" class="hidden screen-fade space-y-5">
+        <div id="header-interiorMeasure"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 5]: Контейнер модуля «Замеры межкомнатных дверей» -->
+        <div id="workspace-interiorMeasure" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 5. МЕЖКОМНАТНЫЕ ДВЕРИ: РАСЧЁТЫ МЕЖКОМНАТНЫХ ДВЕРЕЙ -->
+      <section id="screen-interiorCalc" data-module="interiorCalc" class="hidden screen-fade space-y-5">
+        <div id="header-interiorCalc"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 6]: Контейнер модуля «Расчёты межкомнатных дверей» -->
+        <div id="workspace-interiorCalc" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 6. МЕЖКОМНАТНЫЕ ДВЕРИ: СЧЁТ-ФАКТУРА -->
+      <section id="screen-interiorInvoice" data-module="interiorInvoice" class="hidden screen-fade space-y-5">
+        <div id="header-interiorInvoice"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 8]: Контейнер модуля «Счёт-фактура (Межкомнатные двери)» -->
+        <div id="workspace-interiorInvoice" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 7. МЕЖКОМНАТНЫЕ ДВЕРИ: ДОГОВОР -->
+      <section id="screen-interiorContract" data-module="interiorContract" class="hidden screen-fade space-y-5">
+        <div id="header-interiorContract"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 9]: Контейнер модуля «Договор (Межкомнатные двери)» -->
+        <div id="workspace-interiorContract" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+      <!-- 8. МЕЖКОМНАТНЫЕ ДВЕРИ: ЗАЯВКА OPEN-CLOSE -->
+      <section id="screen-interiorOpenClose" data-module="interiorOpenClose" class="hidden screen-fade space-y-5">
+        <div id="header-interiorOpenClose"></div>
+        <!-- [ТОЧКА ИНТЕГРАЦИИ ЭТАПА 7]: Контейнер модуля «Заявка Open-Close» -->
+        <div id="workspace-interiorOpenClose" class="bg-graphite-900 border border-graphite-700 rounded-2xl p-5 sm:p-6"></div>
+      </section>
+
+    </div>
 
   </main>
 
-  <!-- МОДАЛЬНОЕ ОКНО: СКАНИРОВАНИЕ ЗАПОЛНЕННОГО ОТ РУКИ БЛАНКА -->
-  <div id="scanModal" class="no-print fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
-    <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-slate-950">
-            <i data-lucide="scan-line" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-base text-slate-900">Оцифровка бумажного бланка замера</h3>
-            <p class="text-xs text-slate-500">Загрузите фото рукописного бланка для автоматического переноса размеров в поля</p>
-          </div>
+  <!-- =========================================================================
+       ПОДВАЛ ЭКОСИСТЕМЫ
+       ========================================================================= -->
+  <footer class="border-t border-graphite-700/80 bg-graphite-900/60 mt-10 py-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#9CA3AF]">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-brand-amber"></span>
+        <span>Фирменный салон «Стальная линия» • Единая база заказов</span>
+      </div>
+      <div class="font-mono text-[11px]">
+        Автосохранение активно (localStorage: <span class="text-[#F3F4F6]">sl_ecosystem_v1</span>)
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 1: СОЗДАНИЕ / РЕДАКТИРОВАНИЕ КАРТОЧКИ КЛИЕНТА И ПАСПОРТА
+       ========================================================================= -->
+  <div id="clientModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl my-8">
+      <!-- Заголовок модалки -->
+      <div class="px-5 py-4 bg-graphite-800 border-b border-graphite-700 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-address-card text-brand-amber text-lg"></i>
+          <h3 id="clientModalTitle" class="text-base sm:text-lg font-bold text-white">
+            Карточка заказа и клиента
+          </h3>
         </div>
-        <button onclick="closeScanModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <button onclick="UIModals.closeClientModal()" class="w-8 h-8 rounded-lg bg-graphite-900 hover:bg-graphite-700 text-[#9CA3AF] hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- Настройка API ключа Gemini для автоматического ИИ-распознавания почерка -->
-      <div class="mt-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <label class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-            <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
-            Ключ Gemini API (для авто-чтения почерка ИИ):
-          </label>
-          <span class="text-[11px] text-slate-400">Сохраняется локально в браузере</span>
-        </div>
-        <div class="flex gap-2 mt-1.5">
-          <input type="password" id="geminiApiKeyInput" placeholder="Вставьте API ключ (AIzaSy...) или оставьте пустым для интерактивного режима"
-            onchange="saveApiKey()"
-            class="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-amber-500 outline-none bg-white" />
-        </div>
-      </div>
+      <!-- Форма клиента -->
+      <form id="clientForm" onsubmit="UIModals.saveClientForm(event)" class="p-5 sm:p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="clientFormMode" value="edit" />
 
-      <!-- Кнопки загрузки фото бланка -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
-        <label class="cursor-pointer flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow transition">
-          <i data-lucide="camera" class="w-4 h-4"></i>
-          <span>Сфотографировать бланк</span>
-          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleBlankPhotoSelected(event)" />
-        </label>
-
-        <label class="cursor-pointer flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shadow transition">
-          <i data-lucide="upload" class="w-4 h-4"></i>
-          <span>Выбрать фото бланка из галереи</span>
-          <input type="file" accept="image/*" class="hidden" onchange="handleBlankPhotoSelected(event)" />
-        </label>
-      </div>
-
-      <!-- Статус анализа -->
-      <div id="scanStatusBox" class="hidden mt-3 p-3 rounded-xl text-xs font-medium"></div>
-
-      <!-- Предпросмотр бланка и интерактивная сверка данных -->
-      <div id="scanPreviewArea" class="hidden mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-200">
+        <!-- Секция 1: Основные и контактные данные -->
         <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-bold text-slate-700">Снимок бланка</span>
-            <label class="inline-flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
-              <input type="checkbox" id="attachBlankToPhotos" checked class="rounded text-amber-500" />
-              <span>Прикрепить бланк к фотоотчёту</span>
-            </label>
+          <div class="text-xs font-semibold uppercase tracking-wider text-brand-amber mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-user"></i>
+            <span>1. Контактные данные и адрес объекта</span>
           </div>
-          <div class="border border-slate-300 rounded-xl overflow-hidden bg-slate-900 max-h-80 flex items-center justify-center">
-            <img id="scanBlankImg" src="" alt="Бланк" class="max-h-80 w-auto object-contain" />
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+            <div class="sm:col-span-4">
+              <label class="block text-xs text-[#9CA3AF] mb-1">Номер заказа *</label>
+              <input type="text" id="fieldOrderNum" required placeholder="СЛ-101"
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white font-mono text-sm focus:outline-none focus:border-brand-amber" />
+            </div>
+            <div class="sm:col-span-8">
+              <label class="block text-xs text-[#9CA3AF] mb-1">ФИО клиента полностью *</label>
+              <input type="text" id="fieldClientName" required placeholder="Введите ФИО клиента..."
+                     oninput="UIModals.syncClientName('main')"
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-brand-amber" />
+            </div>
+
+            <div class="sm:col-span-5">
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs text-[#9CA3AF]">Основной телефон *</label>
+                <button type="button" onclick="NavigationHelpers.callFromInput('fieldClientPhone')"
+                        class="text-[11px] font-semibold text-brand-amber hover:underline flex items-center gap-1">
+                  <i class="fa-solid fa-phone text-[10px]"></i>
+                  <span>Позвонить</span>
+                </button>
+              </div>
+              <input type="tel" id="fieldClientPhone" required placeholder="+375 (__) ___-__-__"
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white font-mono text-sm focus:outline-none focus:border-brand-amber" />
+            </div>
+            <div class="sm:col-span-7">
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs text-[#9CA3AF]">Адрес объекта (улица, дом, кв.) *</label>
+                <button type="button" onclick="NavigationHelpers.routeFromInput('fieldClientAddress')"
+                        class="text-[11px] font-semibold text-brand-amber hover:underline flex items-center gap-1">
+                  <i class="fa-solid fa-route text-[10px]"></i>
+                  <span>Яндекс.Маршрут</span>
+                </button>
+              </div>
+              <input type="text" id="fieldClientAddress" required placeholder="Укажите адрес объекта..."
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-brand-amber" />
+            </div>
+
+            <div class="sm:col-span-6">
+              <label class="block text-xs text-[#9CA3AF] mb-1">Этаж / Тип дома</label>
+              <input type="text" id="fieldClientFloor" placeholder="Укажите этаж..."
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-brand-amber" />
+            </div>
+            <div class="sm:col-span-6">
+              <label class="block text-xs text-[#9CA3AF] mb-1">Наличие грузового лифта</label>
+              <select id="fieldClientElevator"
+                      class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-brand-amber">
+                <option value="">Не указано</option>
+                <option value="Грузовой есть">Грузовой есть</option>
+                <option value="Только пассажирский">Только пассажирский</option>
+                <option value="Лифта нет (ручной подъём)">Лифта нет (ручной подъём)</option>
+                <option value="Частный дом (1 этаж)">Частный дом (1 этаж)</option>
+              </select>
+            </div>
           </div>
-          <button type="button" onclick="runAiBlankExtraction()" id="btnReRunAi"
-            class="mt-2 w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="cpu" class="w-4 h-4"></i>
-            <span>Распознать данные с фото автоматически</span>
-          </button>
+
+          <!-- Подраздел: Дополнительные контакты по нажатию на «+» -->
+          <div class="mt-4 pt-3.5 border-t border-graphite-700/80">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-users text-brand-amber"></i>
+                  <span>Дополнительные контакты (строители, родственники и т.д.)</span>
+                </div>
+                <p class="text-[11px] text-[#9CA3AF]">Для быстрой связи по доступу на объект, приёмке или согласованию</p>
+              </div>
+              <button type="button" onclick="UIModals.addExtraContactRow()"
+                      class="px-3 py-1.5 rounded-xl bg-brand-amber/15 hover:bg-brand-amber/25 border border-brand-amber/40 text-brand-amber text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-plus"></i>
+                <span>Добавить контакт</span>
+              </button>
+            </div>
+
+            <!-- Быстрые пресеты добавления контакта в 1 клик -->
+            <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
+              <span class="text-[11px] text-[#9CA3AF] mr-1">Быстро добавить:</span>
+              <button type="button" onclick="UIModals.addExtraContactRow({ role: 'Строители / Прораб' })"
+                      class="px-2 py-1 rounded-lg bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-[11px] text-[#F3F4F6] transition-colors">
+                + Строители / Прораб
+              </button>
+              <button type="button" onclick="UIModals.addExtraContactRow({ role: 'Родственники' })"
+                      class="px-2 py-1 rounded-lg bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-[11px] text-[#F3F4F6] transition-colors">
+                + Родственники
+              </button>
+              <button type="button" onclick="UIModals.addExtraContactRow({ role: 'Супруг(а)' })"
+                      class="px-2 py-1 rounded-lg bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-[11px] text-[#F3F4F6] transition-colors">
+                + Супруг(а)
+              </button>
+              <button type="button" onclick="UIModals.addExtraContactRow({ role: 'Дизайнер' })"
+                      class="px-2 py-1 rounded-lg bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-[11px] text-[#F3F4F6] transition-colors">
+                + Дизайнер
+              </button>
+            </div>
+
+            <!-- Контейнер динамических строк дополнительных контактов -->
+            <div id="extraContactsContainer" class="space-y-2">
+              <!-- Генерируется динамически -->
+            </div>
+          </div>
         </div>
 
-        <!-- Быстрая проверка / корректировка распознанных полей -->
-        <div class="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div class="text-xs font-bold text-slate-800 border-b border-slate-200 pb-1.5">
-            Извлечённые данные (проверьте перед подстановкой):
+        <!-- Секция 2: Паспортные данные (Автоматически подставляются в блоки «Договор») -->
+        <div id="clientModalPassportSection" class="pt-3 border-t border-graphite-700">
+          <div class="text-xs font-semibold uppercase tracking-wider text-sky-400 mb-3 flex flex-wrap items-center justify-between gap-2">
+            <span class="flex items-center gap-2">
+              <i class="fa-solid fa-id-card"></i>
+              <span>2. Паспортные данные / ID-карта (для Договоров)</span>
+            </span>
+            <span class="text-[11px] font-normal text-[#9CA3AF] normal-case flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate text-sky-400 text-[10px]"></i>
+              ФИО синхронизируется с карточкой клиента
+            </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[10px] text-slate-500">Клиент</label>
-              <input type="text" id="scan_clientName" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+            <!-- ФИО (дублируется с общими данными в карточке) -->
+            <div class="sm:col-span-12">
+              <label class="block text-xs text-[#9CA3AF] mb-1">
+                ФИО по паспорту <span class="text-sky-400">(дублируется с основным ФИО в карточке)</span>
+              </label>
+              <input type="text" id="fieldPassportFullName" placeholder="Введите ФИО..."
+                     oninput="UIModals.syncClientName('passport')"
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-sky-400" />
             </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">Телефон</label>
-              <input type="text" id="scan_clientPhone" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
+
+            <!-- Серия и номер паспорта или ID-карты -->
+            <div class="sm:col-span-6">
+              <label class="block text-xs text-[#9CA3AF] mb-1">Серия и номер паспорта или ID-карты</label>
+              <input type="text" id="fieldPassportSeriesNum" placeholder="MP 0000000 / ID-карта"
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white font-mono text-sm focus:outline-none focus:border-sky-400" />
+            </div>
+
+            <!-- Когда выдан документ -->
+            <div class="sm:col-span-6">
+              <label class="block text-xs text-[#9CA3AF] mb-1">Когда выдан документ (дата выдачи)</label>
+              <input type="text" id="fieldPassportIssueDate" placeholder="ДД.ММ.ГГГГ"
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white font-mono text-sm focus:outline-none focus:border-sky-400" />
+            </div>
+
+            <!-- Каким органом выдан документ -->
+            <div class="sm:col-span-12">
+              <label class="block text-xs text-[#9CA3AF] mb-1">Каким органом выдан документ</label>
+              <input type="text" id="fieldPassportIssuedBy" placeholder="Укажите орган, выдавший документ..."
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-sky-400" />
+            </div>
+
+            <!-- Место прописки по паспорту -->
+            <div class="sm:col-span-12">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <label class="block text-xs text-[#9CA3AF]">Место прописки (регистрации) по паспорту</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" onclick="UIModals.copyObjectAddressToReg()"
+                          class="text-[11px] font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Совпадает с адресом объекта</span>
+                  </button>
+                  <button type="button" onclick="NavigationHelpers.routeFromInput('fieldPassportRegAddress')"
+                          class="text-[11px] font-semibold text-brand-amber hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-route text-[10px]"></i>
+                    <span>Маршрут</span>
+                  </button>
+                </div>
+              </div>
+              <input type="text" id="fieldPassportRegAddress" placeholder="Укажите адрес регистрации..."
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-sky-400" />
             </div>
           </div>
+        </div>
 
-          <div>
-            <label class="block text-[10px] text-slate-500">Адрес</label>
-            <input type="text" id="scan_clientAddress" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
-          </div>
+        <!-- Секция 3: Примечание по заказу -->
+        <div class="pt-3 border-t border-graphite-700">
+          <label class="block text-xs text-[#9CA3AF] mb-1">Общее примечание по заказу (код домофона, ориентиры, пожелания)</label>
+          <textarea id="fieldClientNotes" rows="2" placeholder="Введите примечание..."
+                    class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-white text-sm focus:outline-none focus:border-brand-amber"></textarea>
+        </div>
 
-          <div class="grid grid-cols-3 gap-1.5">
-            <div>
-              <label class="block text-[10px] text-slate-500">Ш. Верх</label>
-              <input type="number" id="scan_wTop" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">Ш. Центр</label>
-              <input type="number" id="scan_wCenter" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">Ш. Низ</label>
-              <input type="number" id="scan_wBottom" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-1.5">
-            <div>
-              <label class="block text-[10px] text-slate-500">В. Лево</label>
-              <input type="number" id="scan_hLeft" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">В. Центр</label>
-              <input type="number" id="scan_hCenter" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">В. Право</label>
-              <input type="number" id="scan_hRight" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-1.5">
-            <div>
-              <label class="block text-[10px] text-slate-500">Коробка Ш (мм)</label>
-              <input type="number" id="scan_frameW" placeholder="860 / 950" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">Коробка В (мм)</label>
-              <input type="number" id="scan_frameH" placeholder="2050" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">Наличник (мм)</label>
-              <input type="number" id="scan_architrave" placeholder="67" class="w-full px-2 py-1 text-xs font-bold text-center rounded border border-slate-300" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-1.5">
-            <div>
-              <label class="block text-[10px] text-slate-500">Глубина стены (мм)</label>
-              <input type="number" id="scan_wallDepth" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500">Перепад пола (мм)</label>
-              <input type="number" id="scan_floorDiff" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-[10px] text-slate-500">Примечания с бланка</label>
-            <input type="text" id="scan_notes" class="w-full px-2 py-1 text-xs rounded border border-slate-300" />
-          </div>
-
-          <button type="button" onclick="applyScannedDataToForm()"
-            class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow flex items-center justify-center gap-1.5 transition">
-            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-            <span>Подставить данные в основной замер</span>
+        <!-- Кнопки сохранения -->
+        <div class="pt-3 border-t border-graphite-700 flex items-center justify-end gap-3">
+          <button type="button" onclick="UIModals.closeClientModal()"
+                  class="px-4 py-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs sm:text-sm font-medium text-[#9CA3AF] hover:text-white">
+            Отмена
           </button>
+          <button type="submit"
+                  class="px-5 py-2.5 rounded-xl bg-brand-amber hover:bg-brand-amberHover text-graphite-950 font-semibold text-xs sm:text-sm shadow-lg shadow-amber-500/20 flex items-center gap-2">
+            <i class="fa-solid fa-check"></i>
+            <span>Сохранить заказ</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 2: ЖУРНАЛ ВСЕХ ЗАКАЗОВ (ПОИСК, ФИЛЬТР, ПЕРЕКЛЮЧЕНИЕ)
+       ========================================================================= -->
+  <div id="ordersListModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl max-w-4xl w-full overflow-hidden shadow-2xl my-8 flex flex-col max-h-[85vh]">
+      
+      <!-- Шапка журнала -->
+      <div class="px-5 py-4 bg-graphite-800 border-b border-graphite-700 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-folder-open text-brand-amber text-lg"></i>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white">Единый журнал заказов</h3>
+            <p class="text-xs text-[#9CA3AF]">Выберите заказ для работы или создайте новый</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="UIModals.closeOrdersList(); UIModals.openClientModal('create');"
+                  class="px-3.5 py-2 rounded-xl bg-brand-amber hover:bg-brand-amberHover text-graphite-950 font-semibold text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i>
+            <span>Новый заказ</span>
+          </button>
+          <button onclick="UIModals.closeOrdersList()" class="w-8 h-8 rounded-lg bg-graphite-900 hover:bg-graphite-700 text-[#9CA3AF] hover:text-white flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Панель живого поиска -->
+      <div class="p-4 bg-graphite-900 border-b border-graphite-700">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-sm"></i>
+          <input type="text" id="ordersSearchInput" oninput="UIModals.renderOrdersList()"
+                 placeholder="Поиск по номеру заказа, ФИО клиента, адресу или телефону..."
+                 class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-graphite-800 border border-graphite-700 text-sm text-white placeholder-[#9CA3AF] focus:outline-none focus:border-brand-amber" />
+        </div>
+      </div>
+
+      <!-- Список заказов -->
+      <div id="ordersListContainer" class="p-4 space-y-3 overflow-y-auto flex-1">
+        <!-- Заполняется динамически -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 3: РЕЗЕРВНОЕ КОПИРОВАНИЕ (ЭКСПОРТ / ИМПОРТ БАЗЫ JSON)
+       ========================================================================= -->
+  <div id="backupModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl my-8">
+      <div class="px-5 py-4 bg-graphite-800 border-b border-graphite-700 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-database text-brand-amber text-lg"></i>
+          <h3 class="text-base sm:text-lg font-bold text-white">Резервное копирование базы (JSON)</h3>
+        </div>
+        <button onclick="UIModals.closeBackupModal()" class="w-8 h-8 rounded-lg bg-graphite-900 hover:bg-graphite-700 text-[#9CA3AF] hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 sm:p-6 space-y-5">
+        <!-- Выгрузка базы -->
+        <div class="bg-graphite-800 border border-graphite-700 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-download text-emerald-400"></i>
+              <span>Экспорт базы заказов</span>
+            </h4>
+            <span class="text-xs font-mono text-[#9CA3AF]" id="backupStatsLabel"></span>
+          </div>
+          <p class="text-xs text-[#9CA3AF]">
+            Сохраните полную копию всех заказов, замеров, расчётов и договоров в файл <code class="text-white">.json</code> для переноса между телефоном и компьютером в салоне.
+          </p>
+          <div class="flex flex-wrap gap-2.5 pt-1">
+            <button onclick="BackupManager.downloadJSON()"
+                    class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-graphite-950 font-semibold text-xs flex items-center gap-2">
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span>Скачать JSON-файл</span>
+            </button>
+            <button onclick="BackupManager.copyJSONToClipboard()"
+                    class="px-4 py-2 rounded-xl bg-graphite-900 hover:bg-graphite-700 border border-graphite-700 text-white font-medium text-xs flex items-center gap-2">
+              <i class="fa-regular fa-copy text-brand-amber"></i>
+              <span>Скопировать JSON в буфер</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Загрузка базы -->
+        <div class="bg-graphite-800 border border-graphite-700 rounded-xl p-4 space-y-3">
+          <h4 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-upload text-brand-amber"></i>
+            <span>Импорт базы из файла</span>
+          </h4>
+          <p class="text-xs text-[#9CA3AF]">
+            Выберите ранее сохранённый файл <code class="text-white">.json</code>. Система проверит целостность структуры перед загрузкой.
+          </p>
+          <label class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-graphite-900 hover:bg-graphite-700 border border-graphite-700 text-xs font-semibold text-brand-amber cursor-pointer transition-colors">
+            <i class="fa-solid fa-folder-open"></i>
+            <span>Выбрать файл .JSON с устройства</span>
+            <input type="file" accept=".json,application/json" class="hidden" onchange="BackupManager.importJSONFile(event)" />
+          </label>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ===================================================================== -->
-  <!-- ПЕЧАТНАЯ ФОРМА №1: ПУСТОЙ БЛАНК А4 ПОПОЛАМ (2 БЛАНКА НА ЛИСТЕ А4)     -->
-  <!-- ===================================================================== -->
-  <div id="print-blank-container" class="hidden"></div>
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 4: КАСТОМНОЕ ПОДТВЕРЖДЕНИЕ ДЕЙСТВИЯ (ВМЕСТО confirm())
+       ========================================================================= -->
+  <div id="confirmModal" class="fixed inset-0 z-[60] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h4 id="confirmModalTitle" class="text-base font-bold text-white">Подтвердите действие</h4>
+          <p id="confirmModalMessage" class="text-xs sm:text-sm text-[#9CA3AF] mt-1"></p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-graphite-700">
+        <button onclick="UIModals.closeConfirm()"
+                class="px-4 py-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs font-medium text-[#9CA3AF] hover:text-white">
+          Отмена
+        </button>
+        <button id="confirmModalActionBtn"
+                class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold">
+          Подтвердить
+        </button>
+      </div>
+    </div>
+  </div>
 
-  <!-- ===================================================================== -->
-  <!-- ПЕЧАТНАЯ ФОРМА №2: ЗАПОЛНЕННЫЙ ЗАМЕРОЧНЫЙ ЛИСТ А4                     -->
-  <!-- ===================================================================== -->
-  <div id="print-filled-container" class="hidden"></div>
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 5: СКАНИРОВАНИЕ И ОЦИФРОВКА ЗАПОЛНЕННОГО ОТ РУКИ БЛАНКА
+       ========================================================================= -->
+  <div id="scanBlankModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl max-w-4xl w-full overflow-hidden shadow-2xl my-6 max-h-[92vh] flex flex-col">
+      <!-- Шапка -->
+      <div class="px-5 py-4 bg-graphite-800 border-b border-graphite-700 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-brand-amber/20 border border-brand-amber/40 flex items-center justify-center text-brand-amber">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white">Оцифровка бумажного бланка замера по фото</h3>
+            <p class="text-xs text-[#9CA3AF]">Сфотографируйте заполненный на адресе бланк — данные подставятся в активный заказ</p>
+          </div>
+        </div>
+        <button onclick="EntranceMeasureModule.closeScanBlankModal()" class="w-8 h-8 rounded-lg bg-graphite-900 hover:bg-graphite-700 text-[#9CA3AF] hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
+      <!-- Тело модалки -->
+      <div class="p-5 space-y-4 overflow-y-auto flex-1">
+        <!-- Поле ключа Gemini API для авто-распознавания почерка -->
+        <div class="bg-graphite-800/80 border border-graphite-700 rounded-xl p-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+            <label class="text-xs font-semibold text-white flex items-center gap-2">
+              <i class="fa-solid fa-microchip text-brand-amber"></i>
+              <span>Ключ Gemini API (для автоматического ИИ-распознавания рукописных цифр):</span>
+            </label>
+            <span class="text-[11px] font-mono text-[#9CA3AF]">Сохраняется в браузере</span>
+          </div>
+          <input type="password" id="scanGeminiApiKey"
+                 onchange="EntranceMeasureModule.saveGeminiApiKey(this.value)"
+                 placeholder="Вставьте ключ AIzaSy... (или оставьте пустым для интерактивного переноса с фото)"
+                 class="w-full px-3.5 py-2 rounded-xl bg-graphite-900 border border-graphite-700 text-xs font-mono text-white focus:outline-none focus:border-brand-amber" />
+        </div>
+
+        <!-- Кнопки загрузки фото бланка -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="cursor-pointer py-3 px-4 rounded-xl bg-brand-amber hover:bg-brand-amberHover text-graphite-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/15 transition-all">
+            <i class="fa-solid fa-camera text-base"></i>
+            <span>Сфотографировать бланк</span>
+            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="EntranceMeasureModule.handleBlankScanUpload(event)" />
+          </label>
+          <label class="cursor-pointer py-3 px-4 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all">
+            <i class="fa-solid fa-images text-brand-amber text-base"></i>
+            <span>Выбрать фото бланка из галереи</span>
+            <input type="file" accept="image/*" class="hidden" onchange="EntranceMeasureModule.handleBlankScanUpload(event)" />
+          </label>
+        </div>
+
+        <!-- Индикатор статуса анализа -->
+        <div id="scanBlankStatusBox" class="hidden p-3.5 rounded-xl border text-xs font-medium"></div>
+
+        <!-- Рабочая область сверки снимка и распознанных полей -->
+        <div id="scanBlankPreviewWrap" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4 pt-3 border-t border-graphite-700">
+          <!-- Левая часть: фото бланка -->
+          <div class="lg:col-span-5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white">Загруженное фото бланка</span>
+              <label class="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] cursor-pointer">
+                <input type="checkbox" id="scanAttachToPhotos" checked class="rounded accent-amber-500" />
+                <span>Сохранить в фотоотчёт замера</span>
+              </label>
+            </div>
+            <div class="bg-graphite-950 border border-graphite-700 rounded-xl overflow-hidden flex items-center justify-center max-h-96">
+              <img id="scanBlankPreviewImg" src="" alt="Скан бланка" class="max-h-96 w-auto object-contain" />
+            </div>
+            <button type="button" onclick="EntranceMeasureModule.runAiBlankOcr()"
+                    class="w-full py-2.5 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all">
+              <i class="fa-solid fa-rotate"></i>
+              <span>Повторить ИИ-анализ снимка</span>
+            </button>
+          </div>
+
+          <!-- Правая часть: извлечённые размеры -->
+          <div class="lg:col-span-7 bg-graphite-800/70 border border-graphite-700 rounded-xl p-4 space-y-3">
+            <div class="text-xs font-bold text-brand-amber uppercase tracking-wider border-b border-graphite-700 pb-2">
+              Распознанные данные (проверьте перед подстановкой в заказ)
+            </div>
+
+            <!-- Клиент и адрес -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF] mb-0.5">ФИО клиента</label>
+                <input type="text" id="ocr_clientName" placeholder="—" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF] mb-0.5">Телефон</label>
+                <input type="text" id="ocr_clientPhone" placeholder="—" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF] mb-0.5">Адрес объекта</label>
+                <input type="text" id="ocr_clientAddress" placeholder="—" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
+              </div>
+            </div>
+
+            <!-- Проём Ш х В х Толщина стены -->
+            <div>
+              <div class="text-[11px] font-semibold text-sky-400 mb-1">1. Стеновой проём (мм):</div>
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <label class="block text-[10px] text-[#9CA3AF]">Ширина проёма</label>
+                  <input type="number" id="ocr_openingWidth" placeholder="мм" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono font-bold text-white" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-[#9CA3AF]">Высота проёма</label>
+                  <input type="number" id="ocr_openingHeight" placeholder="мм" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono font-bold text-white" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-[#9CA3AF]">Толщина стенки</label>
+                  <input type="number" id="ocr_wallThickness" placeholder="мм" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono font-bold text-white" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Старая дверь и откос -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Старая кор. Ш</label>
+                <input type="number" id="ocr_oldBoxWidth" placeholder="мм" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Старая кор. В</label>
+                <input type="number" id="ocr_oldBoxHeight" placeholder="мм" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Стар. налич. Ш</label>
+                <input type="number" id="ocr_oldArchWidth" placeholder="мм" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Стар. налич. В</label>
+                <input type="number" id="ocr_oldArchHeight" placeholder="мм" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+            </div>
+
+            <!-- Перемычки и рекомендуемая коробка -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Перемычка снар.</label>
+                <input type="number" id="ocr_lintelOutHeight" placeholder="мм" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Перемычка внутр.</label>
+                <input type="number" id="ocr_lintelInHeight" placeholder="мм" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-brand-amber">Новая коробка Ш</label>
+                <input type="number" id="ocr_newDoorWidth" placeholder="860 / 950" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-brand-amber/50 text-xs font-mono font-bold text-brand-amber" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-brand-amber">Новая коробка В</label>
+                <input type="number" id="ocr_newDoorHeight" placeholder="2050" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-brand-amber/50 text-xs font-mono font-bold text-brand-amber" />
+              </div>
+            </div>
+
+            <!-- Вылеты наличника и открывание -->
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Вылет СЛЕВА (мм)</label>
+                <input type="number" id="ocr_archLeft" placeholder="67" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono font-bold text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Вылет СПРАВА (мм)</label>
+                <input type="number" id="ocr_archRight" placeholder="67" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono font-bold text-white" />
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#9CA3AF]">Вылет СВЕРХУ (мм)</label>
+                <input type="number" id="ocr_archTop" placeholder="67" class="w-full px-2 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs font-mono font-bold text-white" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-[#9CA3AF] mb-0.5">Комментарий с бланка</label>
+              <input type="text" id="ocr_userComment" placeholder="Заметки с бланка..." class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
+            </div>
+
+            <button type="button" onclick="EntranceMeasureModule.applyScannedBlankToEcosystem()"
+                    class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-graphite-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all">
+              <i class="fa-solid fa-file-import"></i>
+              <span>Подставить данные в поля замера и карточку заказа</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       КОНТЕЙНЕР ПЕЧАТИ (А4 ПОПОЛАМ ПУСТОЙ БЛАНК / ЗАПОЛНЕННЫЙ ЛИСТ ЗАМЕРА)
+       ========================================================================= -->
+  <div id="printAreaContainer"></div>
+
+  <!-- =========================================================================
+       ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ (TOAST ВМЕСТО alert())
+       ========================================================================= -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- =========================================================================
+       ЯДРО ЭКОСИСТЕМЫ (JAVASCRIPT: СХЕМА ДАННЫХ, РОУТЕР, МОДУЛИ)
+       ========================================================================= -->
   <script>
-    // --- КОНСТАНТЫ И СЕТКИ РАЗМЕРОВ ---
-    // Ширина коробки: база 860 и 950, шаг 30 мм в обе стороны
-    const FRAME_WIDTHS = [740, 770, 800, 830, 860, 890, 920, 950, 980, 1010, 1040, 1070, 1100];
-    const STD_WIDTHS = [860, 950];
+    /**
+     * =========================================================================
+     * 0. УТИЛИТЫ ВЫЗОВА ПО ТЕЛЕФОНУ И МАРШРУТОВ В ЯНДЕКС.КАРТАХ
+     * =========================================================================
+     */
+    const NavigationHelpers = {
+      cleanPhone(phoneStr) {
+        const raw = String(phoneStr || '').trim();
+        const hasPlus = raw.startsWith('+');
+        const digits = raw.replace(/\D/g, '');
+        if (!digits) return '';
+        return (hasPlus ? '+' : '+') + digits;
+      },
 
-    // Высота коробки: база 2050, шаг 30 мм в обе стороны
-    const FRAME_HEIGHTS = [1870, 1900, 1930, 1960, 1990, 2020, 2050, 2080, 2110, 2140, 2170, 2200, 2230];
-    const STD_HEIGHTS = [2050];
+      getTelHref(phoneStr) {
+        const cleaned = this.cleanPhone(phoneStr);
+        return cleaned ? `tel:${cleaned}` : '#';
+      },
 
-    // Вылет наличника за габарит коробки:
-    // 1) Уличная без МДФ: от 17 до 97 с шагом 10 мм
-    const ARCHITRAVE_STREET = [17, 27, 37, 47, 57, 67, 77, 87, 97];
-    // 2) Квартирная с МДФ: от 15 до 105 с шагом 10 мм, но вместо 65 -> 67 мм
-    const ARCHITRAVE_APT = [15, 25, 35, 45, 55, 67, 75, 85, 95, 105];
+      getYandexRouteHref(addressStr) {
+        const trimmed = String(addressStr || '').trim();
+        if (!trimmed || trimmed === 'Адрес не указан' || trimmed === '—') {
+          return 'https://yandex.by/maps/';
+        }
+        return `https://yandex.by/maps/?rtext=~${encodeURIComponent(trimmed)}&rtt=auto`;
+      },
 
-    const QUICK_TAGS = [
-      'Демонтаж старой двери',
-      'Резать порог',
-      'Демонтаж штукатурки 5 м.п.',
-      'Демонтаж откоса из ГКЛ',
-      'Расширение проёма',
-      'Закладка проёма сверху',
-      'Усиление проёма металлом',
-      'Подъём без лифта'
-    ];
+      copyText(text) {
+        try {
+          const temp = document.createElement('textarea');
+          temp.value = text;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand('copy');
+          document.body.removeChild(temp);
+          return true;
+        } catch {
+          return false;
+        }
+      },
 
-    // Текущее состояние конфигурации
-    let state = {
-      doorType: 'street',      // 'street' (Уличная без МДФ) | 'apartment' (Квартирная с МДФ)
-      frameWidth: 860,         // по умолчанию стандарт 860
-      frameHeight: 2050,       // по умолчанию стандарт 2050
-      architrave: 67,          // по умолчанию всегда 67 мм
-      openingSide: 'Наружное Правое',
-      selectedTags: [],
-      photos: []               // массив { id, dataUrl, caption }
+      callFromInput(inputId, event) {
+        const val = document.getElementById(inputId)?.value || '';
+        window.triggerPhoneCall(val, event);
+      },
+
+      callFromContactBtn(btnEl, event) {
+        const row = btnEl.closest('.extra-contact-row');
+        const val = row?.querySelector('[data-field="phone"]')?.value || '';
+        window.triggerPhoneCall(val, event);
+      },
+
+      routeFromInput(inputId, event) {
+        const val = (document.getElementById(inputId)?.value || '').trim();
+        window.triggerYandexRoute(val, event);
+      }
     };
 
-    let currentScanImageBase64 = null;
-
-    // --- ИНИЦИАЛИЗАЦИЯ ---
-    window.addEventListener('DOMContentLoaded', () => {
-      initFrameSelects();
-      renderArchitraveButtons();
-      renderQuickTags();
-      loadApiKey();
-
-      // По требованию п.4 все поля ввода при открытии чистые
-      clearAllFields(false);
-      lucide.createIcons();
-    });
-
-    function initFrameSelects() {
-      const wSelect = document.getElementById('frameWidthSelect');
-      wSelect.innerHTML = FRAME_WIDTHS.map(w => {
-        const isStd = STD_WIDTHS.includes(w);
-        const diff860 = w - 860;
-        const label = isStd
-          ? `${w} мм ★ СТАНДАРТ`
-          : `${w} мм (${diff860 > 0 ? '+' + diff860 : diff860} от 860)`;
-        return `<option value="${w}" ${w === state.frameWidth ? 'selected' : ''}>${label}</option>`;
-      }).join('');
-
-      const hSelect = document.getElementById('frameHeightSelect');
-      hSelect.innerHTML = FRAME_HEIGHTS.map(h => {
-        const isStd = STD_HEIGHTS.includes(h);
-        const diff = h - 2050;
-        const label = isStd
-          ? `${h} мм ★ СТАНДАРТ`
-          : `${h} мм (${diff > 0 ? '+' + diff : diff} от 2050)`;
-        return `<option value="${h}" ${h === state.frameHeight ? 'selected' : ''}>${label}</option>`;
-      }).join('');
-    }
-
-    // --- ПЕРЕКЛЮЧЕНИЕ ТИПА ДВЕРИ И ВЫЛЕТА НАЛИЧНИКА ---
-    function setDoorType(type) {
-      state.doorType = type;
-      const scale = type === 'street' ? ARCHITRAVE_STREET : ARCHITRAVE_APT;
-
-      // Если текущий вылет не входит в новую шкалу — ставим стандарт 67 мм
-      if (!scale.includes(state.architrave)) {
-        state.architrave = 67;
+    window.triggerPhoneCall = function(phoneRaw, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      const cleaned = NavigationHelpers.cleanPhone(phoneRaw);
+      if (!cleaned || cleaned.length < 6) {
+        if (event) event.preventDefault();
+        UIToast.show('Введите корректный номер телефона для вызова', 'info');
+        return false;
       }
 
-      const btnStreet = document.getElementById('btnTypeStreet');
-      const btnApt = document.getElementById('btnTypeApt');
-      const hint = document.getElementById('architraveScaleHint');
+      const telUrl = `tel:${cleaned}`;
+      try {
+        window.open(telUrl, '_self');
+      } catch (e) {}
 
-      if (type === 'street') {
-        btnStreet.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-amber-500 bg-amber-50/70';
-        btnApt.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-slate-200 bg-white hover:bg-slate-50';
-        hint.textContent = 'Уличная (без МДФ): от 17 до 97 мм с шагом 10 мм (67 мм — стандарт по умолчанию)';
-      } else {
-        btnApt.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-amber-500 bg-amber-50/70';
-        btnStreet.className = 'p-3 rounded-xl border-2 text-left transition flex items-center justify-between border-slate-200 bg-white hover:bg-slate-50';
-        hint.textContent = 'Квартирная (с МДФ): от 15 до 105 мм с шагом 10 мм, кроме 67 мм вместо 65 мм (67 мм — стандарт)';
+      NavigationHelpers.copyText(cleaned);
+      UIToast.show(`Вызов ${cleaned} (номер также скопирован)`, 'info');
+      return true;
+    };
+
+    window.triggerYandexRoute = function(addressRaw, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      const trimmed = String(addressRaw || '').trim();
+      if (!trimmed || trimmed === 'Адрес не указан' || trimmed === '—') {
+        if (event) event.preventDefault();
+        UIToast.show('Сначала укажите адрес для построения маршрута', 'info');
+        return false;
       }
 
-      renderArchitraveButtons();
-      updateCalculations();
-      saveDraft();
-    }
+      const routeUrl = NavigationHelpers.getYandexRouteHref(trimmed);
+      if (event) {
+        event.preventDefault();
+      }
+      const win = window.open(routeUrl, '_blank', 'noopener,noreferrer');
+      if (!win) {
+        window.location.href = routeUrl;
+      }
+      UIToast.show(`Открываем маршрут в Яндекс.Картах: ${trimmed}`, 'success');
+      return false;
+    };
 
-    function renderArchitraveButtons() {
-      const container = document.getElementById('architraveButtonsContainer');
-      const scale = state.doorType === 'street' ? ARCHITRAVE_STREET : ARCHITRAVE_APT;
+    /**
+     * =========================================================================
+     * 1. РЕЕСТР ВСЕХ 8 МОДУЛЕЙ ЭКОСИСТЕМЫ (MODULE REGISTRY)
+     * =========================================================================
+     */
+    const MODULE_REGISTRY = [
+      // ---------------- ВЕТВЬ 1: ВХОДНЫЕ ДВЕРИ «СТАЛЬНАЯ ЛИНИЯ» ----------------
+      {
+        id: 'entranceMeasure',
+        branch: 'entrance',
+        branchTitle: 'Входные двери «Стальная линия»',
+        step: 1,
+        stageNum: 2,
+        title: 'Замеры входных дверей',
+        shortTitle: 'Замер входной',
+        icon: 'fa-ruler-combined',
+        description: 'Габариты проёма и старой двери, сетка коробок 860/950×2050 (шаг 30 мм), вылет наличника (стд. 67 мм), фото, печать бланков и ИИ-сканер.',
+        plannedFeatures: [
+          'Ввод размеров проёма (Ш×В×Г) и габаритов старой коробки (все поля пустые на старте)',
+          'Стандарты коробок 860 и 950 × 2050 мм с шагом изменения ±30 мм',
+          'Вылет наличника: Уличные без МДФ (17–97 мм) и Квартирные с МДФ (15–105 мм, 67 вместо 65), стандарт 67 мм',
+          'Фотофиксация (камера/галерея), печать пустого бланка А4 пополам с ИИ-оцифровкой и печать готового замера'
+        ]
+      },
+      {
+        id: 'entranceInvoice',
+        branch: 'entrance',
+        branchTitle: 'Входные двери «Стальная линия»',
+        step: 2,
+        stageNum: 3,
+        title: 'Счёт-фактура',
+        shortTitle: 'Счёт-фактура (Вх.)',
+        icon: 'fa-file-invoice-dollar',
+        description: 'Формирование спецификации входной двери, доборов и фурнитуры с гибкой наценкой и суммой прописью (BYN).',
+        plannedFeatures: [
+          'Автоматический импорт модели, размера и комплектации из блока замера',
+          'Гибкая корректировка цен и пропорциональная подгонка под целевую сумму',
+          'Расчёт с НДС / без НДС и автоматическая сумма прописью в белорусских рублях',
+          'Чистовой бланк для банка (кредит/рассрочка) с выгрузкой на печать'
+        ]
+      },
+      {
+        id: 'entranceContract',
+        branch: 'entrance',
+        branchTitle: 'Входные двери «Стальная линия»',
+        step: 3,
+        stageNum: 4,
+        title: 'Договор',
+        shortTitle: 'Договор (Вх.)',
+        icon: 'fa-file-signature',
+        description: 'Автозаполнение договора купли-продажи входной двери паспортными данными клиента и суммой из счёта.',
+        plannedFeatures: [
+          'Мгновенная подстановка ФИО, адреса и паспорта из карточки заказа',
+          'Синхронизация стоимости, аванса и остатка доплаты со счётом-фактурой',
+          'Печатная форма договора и акта приёма-передачи в один клик'
+        ]
+      },
 
-      container.innerHTML = scale.map(val => {
-        const isSelected = val === state.architrave;
-        const isDefault67 = val === 67;
-        let btnClass = isSelected
-          ? 'bg-slate-900 text-amber-400 border-slate-900 ring-2 ring-amber-400 font-extrabold'
-          : isDefault67
-            ? 'bg-amber-100 text-amber-950 border-amber-400 font-bold hover:bg-amber-200'
-            : 'bg-white text-slate-700 border-slate-300 font-semibold hover:bg-slate-100';
+      // ---------------- ВЕТВЬ 2: МЕЖКОМНАТНЫЕ ДВЕРИ ----------------
+      {
+        id: 'interiorMeasure',
+        branch: 'interior',
+        branchTitle: 'Межкомнатные двери',
+        step: 1,
+        stageNum: 5,
+        title: 'Замеры межкомнатных дверей',
+        shortTitle: 'Замеры межкомн.',
+        icon: 'fa-compass-drafting',
+        description: 'Покомнатный обмер всех проёмов (В×Ш×Г стены), стороны открывания, системы инсайд/реверс и пороги.',
+        plannedFeatures: [
+          'Неограниченный список проёмов (Ванная, Санузел, Кухня, Спальня, Зал)',
+          'Замер высоты, ширины и точной толщины стены в нескольких точках',
+          'Выбор типа открывания (обычное, реверс/Inside, раздвижная система)',
+          'Указание типа петель, замков и необходимости подрезки наличника'
+        ]
+      },
+      {
+        id: 'interiorCalc',
+        branch: 'interior',
+        branchTitle: 'Межкомнатные двери',
+        step: 2,
+        stageNum: 6,
+        title: 'Расчёты межкомнатных дверей',
+        shortTitle: 'Расчёт погонажа',
+        icon: 'fa-calculator',
+        description: 'Автоматический перевод замеров в точное количество полотен, коробок, доборов, наличников и фурнитуры.',
+        plannedFeatures: [
+          'Умный алгоритм раскроя стоевых коробки (2.5 / 3 шт.), доборов и наличников',
+          'Комплектация фурнитурой (петли, магнитные замки, ручки, фиксаторы WC)',
+          'Расчёт стоимости полотен, погонажа, фурнитуры и прайса монтажных работ'
+        ]
+      },
+      {
+        id: 'interiorInvoice',
+        branch: 'interior',
+        branchTitle: 'Межкомнатные двери',
+        step: 3,
+        stageNum: 8,
+        title: 'Счёт-фактура',
+        shortTitle: 'Счёт-фактура (Межк.)',
+        icon: 'fa-receipt',
+        description: 'Финансовая спецификация по межкомнатным дверям для клиента или банка с автопереводом суммы прописью.',
+        plannedFeatures: [
+          'Импорт всех рассчитанных позиций полотен, погонажа и фурнитуры',
+          'Распределение скидки или подгонка под круглую итоговую сумму договора',
+          'Печатный бланк с реквизитами салона «Стальная линия» и суммой прописью'
+        ]
+      },
+      {
+        id: 'interiorContract',
+        branch: 'interior',
+        branchTitle: 'Межкомнатные двери',
+        step: 4,
+        stageNum: 9,
+        title: 'Договор',
+        shortTitle: 'Договор (Межк.)',
+        icon: 'fa-handshake',
+        description: 'Договор на поставку межкомнатных дверей с подробной спецификацией по проёмам и графиком оплаты.',
+        plannedFeatures: [
+          'Автозаполнение реквизитов и паспортных данных покупателя',
+          'Приложение со сводной таблицей дверных блоков по каждому помещению',
+          'Фиксация сроков изготовления, авансового платежа и остатка суммы'
+        ]
+      },
+      {
+        id: 'interiorOpenClose',
+        branch: 'interior',
+        branchTitle: 'Межкомнатные двери',
+        step: 5,
+        stageNum: 7,
+        title: 'Заявка Open-Close',
+        shortTitle: 'Заявка Open-Close',
+        icon: 'fa-industry',
+        description: 'Генерация чистовой технической заявки для фабрики/поставщика без розничных цен.',
+        plannedFeatures: [
+          'Формирование фабричной таблицы: модель, цвет, размер полотна, открывание, зарезка',
+          'Точная сводка погонажа (коробки, доборы, наличники, притворные планки)',
+          'Выгрузка в один клик для отправки поставщику Open-Close'
+        ]
+      }
+    ];
+
+    /**
+     * =========================================================================
+     * 2. СЛОВАРЬ СТАТУСОВ МОДУЛЕЙ
+     * =========================================================================
+     */
+    const STATUS_META = {
+      empty: {
+        label: 'Не начат',
+        badgeClass: 'bg-graphite-800 text-[#9CA3AF] border-graphite-700',
+        dotClass: 'bg-[#9CA3AF]',
+        icon: 'fa-circle-minus'
+      },
+      progress: {
+        label: 'В работе',
+        badgeClass: 'bg-amber-500/15 text-brand-amber border-brand-amber/40',
+        dotClass: 'bg-brand-amber',
+        icon: 'fa-spinner'
+      },
+      done: {
+        label: 'Готов',
+        badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40',
+        dotClass: 'bg-emerald-400',
+        icon: 'fa-circle-check'
+      }
+    };
+
+    /**
+     * =========================================================================
+     * 3. ЕДИНОЕ ЯДРО ХРАНЕНИЯ ДАННЫХ (ECOSYSTEM STORE)
+     * По требованию п.4 все поля для заполнения по умолчанию ПУСТЫЕ,
+     * а стандартный вылет наличника по умолчанию равен 67 мм (п.2).
+     * =========================================================================
+     */
+    const STORAGE_KEY = 'sl_ecosystem_v1';
+
+    const EcosystemStore = {
+      state: {
+        version: '1.3',
+        activeOrderId: null,
+        lastOrderSeq: 101,
+        orders: []
+      },
+
+      /**
+       * Дефолтная (ЧИСТАЯ ПУСТАЯ) структура данных для Этапа 2: «Замеры входных дверей»
+       */
+      createDefaultEntranceMeasureData() {
+        return {
+          openingState: 'old_door',       // 'empty' | 'old_door'
+          slopeState: 'no_slopes',        // 'no_slopes' | 'has_slopes'
+          doorType: 'street',             // 'street' (Уличная без МДФ: 17..97) | 'apartment' (Квартирная с МДФ: 15..105, 67 вместо 65)
+          // Габариты стенового проёма (мм) — ПУСТЫЕ ПОЛЯ
+          openingWidth: '',
+          openingHeight: '',
+          wallThickness: '',
+          // Замеры старой двери по коробке (мм) — ПУСТЫЕ ПОЛЯ
+          oldBoxWidth: '',
+          oldBoxHeight: '',
+          oldBoxDepth: '',
+          // Замеры старой двери по наличнику снаружи (мм) — ПУСТЫЕ ПОЛЯ
+          oldArchWidth: '',
+          oldArchHeight: '',
+          // Замеры и материал откоса — ПУСТЫЕ ПОЛЯ
+          slopeWidth: '',
+          slopeHeight: '',
+          slopeMaterials: [],
+          // Общие обязательные поля
+          openingSide: 'out_right',       // 'out_left' | 'out_right' | 'in_left' | 'in_right'
+          lintelOutHeight: '',            // Высота до перемычки от пола крыльца/площадки
+          lintelInHeight: '',             // Высота до перемычки от пола в помещении
+          // Рекомендуемый размер новой двери (сетка 860/950 и 2050 с шагом 30 мм) и вылет наличника (по умолчанию 67 мм)
+          newDoorWidth: '',
+          newDoorHeight: '',
+          customArchitrave: false,
+          archLeft: 67,
+          archRight: 67,
+          archTop: 67,
+          // Фотографии замера
+          photos: [],
+          // Быстрые теги работ и комментарий замерщика
+          selectedTags: [],
+          userComment: '',
+          quickNote: ''
+        };
+      },
+
+      /**
+       * Создаёт чистую структуру слотов для всех 8 модулей
+       */
+      createDefaultModuleSlots() {
+        const slots = {};
+        MODULE_REGISTRY.forEach(mod => {
+          slots[mod.id] = {
+            status: 'empty',
+            updatedAt: null,
+            payload: mod.id === 'entranceMeasure'
+              ? this.createDefaultEntranceMeasureData()
+              : { quickNote: '' }
+          };
+        });
+        return slots;
+      },
+
+      /**
+       * Создаёт нормализованный объект заказа с гарантированным наличием всех полей
+       */
+      normalizeOrder(raw = {}) {
+        const now = new Date().toISOString();
+        const defaultSlots = this.createDefaultModuleSlots();
+
+        const clientName = raw.client?.name ?? raw.passport?.fullName ?? '';
+
+        let legacyIssuedBy = raw.passport?.issuedBy ?? raw.client?.passportIssuedBy ?? '';
+        let legacyIssueDate = raw.passport?.issueDate ?? raw.client?.passportIssueDate ?? '';
+        if (!legacyIssuedBy && raw.client?.passportIssued) {
+          const parts = String(raw.client.passportIssued).split(',');
+          if (parts.length > 1) {
+            legacyIssueDate = parts.pop().trim();
+            legacyIssuedBy = parts.join(',').trim();
+          } else {
+            legacyIssuedBy = String(raw.client.passportIssued).trim();
+          }
+        }
+
+        const seriesNumber = raw.passport?.seriesNumber ?? raw.client?.passportSeriesNum ?? '';
+        const registrationAddress = raw.passport?.registrationAddress ?? raw.client?.passportRegAddress ?? '';
+
+        const rawExtraContacts = Array.isArray(raw.extraContacts)
+          ? raw.extraContacts
+          : (Array.isArray(raw.client?.extraContacts) ? raw.client.extraContacts : []);
+
+        const normalizedExtraContacts = rawExtraContacts
+          .filter(c => c && typeof c === 'object')
+          .map(c => ({
+            id: c.id || 'cnt_' + Math.random().toString(36).substring(2, 8),
+            role: String(c.role || 'Контакт').trim(),
+            name: String(c.name || '').trim(),
+            phone: String(c.phone || '').trim()
+          }))
+          .filter(c => c.name || c.phone || c.role);
+
+        const normalized = {
+          id: raw.id || 'ord_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+          orderNum: (raw.orderNum || 'СЛ-101').trim(),
+          createdAt: raw.createdAt || now,
+          updatedAt: raw.updatedAt || now,
+          client: {
+            name: clientName,
+            phone: raw.client?.phone ?? '',
+            address: raw.client?.address ?? '',
+            floor: raw.client?.floor ?? '',
+            elevator: raw.client?.elevator ?? '',
+            passportFullName: clientName,
+            passportSeriesNum: seriesNumber,
+            passportIssuedBy: legacyIssuedBy,
+            passportIssueDate: legacyIssueDate,
+            passportRegAddress: registrationAddress,
+            notes: raw.client?.notes ?? ''
+          },
+          passport: {
+            fullName: clientName,
+            seriesNumber: seriesNumber,
+            issuedBy: legacyIssuedBy,
+            issueDate: legacyIssueDate,
+            registrationAddress: registrationAddress
+          },
+          extraContacts: normalizedExtraContacts,
+          modules: {}
+        };
+
+        MODULE_REGISTRY.forEach(mod => {
+          const existingSlot = raw[mod.id] || (mod.id === 'entranceMeasure' ? raw.modules?.['ext-measure'] : null);
+          if (existingSlot && typeof existingSlot === 'object') {
+            const rawPayload = existingSlot.payload || existingSlot.data || {};
+            const basePayload = mod.id === 'entranceMeasure'
+              ? this.createDefaultEntranceMeasureData()
+              : { quickNote: '' };
+
+            normalized[mod.id] = {
+              status: ['empty', 'progress', 'done'].includes(existingSlot.status) ? existingSlot.status : 'empty',
+              updatedAt: existingSlot.updatedAt || null,
+              payload: {
+                ...basePayload,
+                ...rawPayload,
+                archLeft: rawPayload.archLeft !== undefined && rawPayload.archLeft !== '' ? Number(rawPayload.archLeft) : 67,
+                archRight: rawPayload.archRight !== undefined && rawPayload.archRight !== '' ? Number(rawPayload.archRight) : 67,
+                archTop: rawPayload.archTop !== undefined && rawPayload.archTop !== '' ? Number(rawPayload.archTop) : 67,
+                slopeMaterials: Array.isArray(rawPayload.slopeMaterials) ? rawPayload.slopeMaterials : [],
+                selectedTags: Array.isArray(rawPayload.selectedTags) ? rawPayload.selectedTags : [],
+                photos: Array.isArray(rawPayload.photos) ? rawPayload.photos : []
+              }
+            };
+          } else {
+            normalized[mod.id] = defaultSlots[mod.id];
+          }
+        });
+
+        normalized.modules['ext-measure'] = {
+          status: normalized.entranceMeasure.status,
+          updatedAt: normalized.entranceMeasure.updatedAt,
+          data: normalized.entranceMeasure.payload
+        };
+
+        return normalized;
+      },
+
+      /**
+       * Инициализация хранилища: если обнаружен старый демо-заказ ord_demo_101 со случайными числами,
+       * он автоматически заменяется на чистый заказ с пустыми полями (п.4).
+       */
+      init() {
+        try {
+          const rawStr = localStorage.getItem(STORAGE_KEY);
+          if (rawStr) {
+            const parsed = JSON.parse(rawStr);
+            if (parsed && Array.isArray(parsed.orders) && parsed.orders.length > 0) {
+              // Удаляем старый автоматически сгенерированный демо-заказ Ковалёва Д.В., если версия была < 1.3
+              const filteredOrders = parsed.version === '1.3'
+                ? parsed.orders
+                : parsed.orders.filter(o => o.id !== 'ord_demo_101');
+
+              if (filteredOrders.length > 0) {
+                this.state.version = '1.3';
+                this.state.lastOrderSeq = Number(parsed.lastOrderSeq) || 101;
+                this.state.orders = filteredOrders.map(o => this.normalizeOrder(o));
+                const exists = this.state.orders.some(o => o.id === parsed.activeOrderId);
+                this.state.activeOrderId = exists ? parsed.activeOrderId : this.state.orders[0].id;
+                this.save();
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Ошибка чтения localStorage, создаём чистую базу:', err);
+        }
+
+        // Создаём первый ЧИСТЫЙ заказ с пустыми полями
+        const cleanOrder = this.normalizeOrder({
+          id: 'ord_' + Date.now(),
+          orderNum: 'СЛ-101',
+          client: {
+            name: '',
+            phone: '',
+            address: '',
+            floor: '',
+            elevator: '',
+            notes: ''
+          }
+        });
+
+        this.state.version = '1.3';
+        this.state.orders = [cleanOrder];
+        this.state.activeOrderId = cleanOrder.id;
+        this.state.lastOrderSeq = 101;
+        this.save();
+      },
+
+      save() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+        } catch (err) {
+          console.error('Ошибка сохранения в localStorage:', err);
+          UIToast.show('Внимание: память браузера заполнена (удалите лишние фото или скачайте JSON-бэкап)', 'error');
+        }
+      },
+
+      getActiveOrder() {
+        let order = this.state.orders.find(o => o.id === this.state.activeOrderId);
+        if (!order && this.state.orders.length > 0) {
+          this.state.activeOrderId = this.state.orders[0].id;
+          order = this.state.orders[0];
+        }
+        return order;
+      },
+
+      getNextOrderNum() {
+        this.state.lastOrderSeq = (Number(this.state.lastOrderSeq) || 100) + 1;
+        return `СЛ-${this.state.lastOrderSeq}`;
+      },
+
+      createOrder(orderData) {
+        const newOrder = this.normalizeOrder(orderData);
+        this.state.orders.unshift(newOrder);
+        this.state.activeOrderId = newOrder.id;
+        this.save();
+        return newOrder;
+      },
+
+      updateActiveClient(orderNum, clientData, passportData, extraContacts) {
+        const order = this.getActiveOrder();
+        if (!order) return;
+        order.orderNum = orderNum.trim() || order.orderNum;
+
+        const syncedFullName = (clientData.name || passportData?.fullName || '').trim();
+
+        order.passport = {
+          fullName: syncedFullName,
+          seriesNumber: (passportData?.seriesNumber || '').trim(),
+          issuedBy: (passportData?.issuedBy || '').trim(),
+          issueDate: (passportData?.issueDate || '').trim(),
+          registrationAddress: (passportData?.registrationAddress || '').trim()
+        };
+
+        order.client = {
+          ...order.client,
+          ...clientData,
+          name: syncedFullName,
+          passportFullName: syncedFullName,
+          passportSeriesNum: order.passport.seriesNumber,
+          passportIssuedBy: order.passport.issuedBy,
+          passportIssueDate: order.passport.issueDate,
+          passportRegAddress: order.passport.registrationAddress
+        };
+
+        if (Array.isArray(extraContacts)) {
+          order.extraContacts = extraContacts;
+        }
+
+        order.updatedAt = new Date().toISOString();
+        this.save();
+      },
+
+      updateModuleSlot(moduleId, { status, payloadPatch }) {
+        const order = this.getActiveOrder();
+        const resolvedId = moduleId === 'ext-measure' ? 'entranceMeasure' : moduleId;
+        if (!order || !order[resolvedId]) return;
+
+        if (status && ['empty', 'progress', 'done'].includes(status)) {
+          order[resolvedId].status = status;
+        }
+        if (payloadPatch && typeof payloadPatch === 'object') {
+          order[resolvedId].payload = {
+            ...order[resolvedId].payload,
+            ...payloadPatch
+          };
+        }
+        const now = new Date().toISOString();
+        order[resolvedId].updatedAt = now;
+        order.updatedAt = now;
+
+        if (resolvedId === 'entranceMeasure') {
+          if (!order.modules) order.modules = {};
+          order.modules['ext-measure'] = {
+            status: order.entranceMeasure.status,
+            updatedAt: now,
+            data: order.entranceMeasure.payload
+          };
+        }
+
+        this.save();
+      },
+
+      setActiveOrder(orderId) {
+        const found = this.state.orders.find(o => o.id === orderId);
+        if (found) {
+          this.state.activeOrderId = found.id;
+          this.save();
+          return true;
+        }
+        return false;
+      },
+
+      deleteOrder(orderId) {
+        this.state.orders = this.state.orders.filter(o => o.id !== orderId);
+        if (this.state.orders.length === 0) {
+          const fallback = this.normalizeOrder({
+            orderNum: this.getNextOrderNum(),
+            client: { name: '', phone: '', address: '' }
+          });
+          this.state.orders.push(fallback);
+        }
+        if (this.state.activeOrderId === orderId) {
+          this.state.activeOrderId = this.state.orders[0].id;
+        }
+        this.save();
+      }
+    };
+
+    /**
+     * =========================================================================
+     * 4. УПРАВЛЕНИЕ ОТОБРАЖЕНИЕМ ДАШБОРДА И АКТИВНОГО ЗАКАЗА
+     * =========================================================================
+     */
+    const DashboardView = {
+      currentBranchFilter: 'all',
+
+      formatDate(isoStr) {
+        if (!isoStr) return 'не обновлялся';
+        try {
+          const d = new Date(isoStr);
+          return d.toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch {
+          return '—';
+        }
+      },
+
+      renderAll() {
+        this.renderActiveOrderBanner();
+        this.renderBranchCards();
+        if (AppRouter.currentRoute !== 'dashboard') {
+          ModuleScreenView.renderModuleScreen(AppRouter.currentRoute);
+        }
+      },
+
+      renderActiveOrderBanner() {
+        const order = EcosystemStore.getActiveOrder();
+        if (!order) return;
+
+        document.getElementById('headerOrdersCount').textContent = EcosystemStore.state.orders.length;
+        document.getElementById('activeOrderNum').textContent = order.orderNum;
+        document.getElementById('activeOrderDate').textContent = `Обновлён: ${this.formatDate(order.updatedAt)}`;
+        document.getElementById('activeClientName').textContent = order.client.name || 'Клиент не указан (нажмите «Карточка и паспорт»)';
+
+        const phoneEl = document.getElementById('activeClientPhone');
+        phoneEl.href = NavigationHelpers.getTelHref(order.client.phone);
+        phoneEl.dataset.phone = order.client.phone || '';
+        phoneEl.querySelector('span').textContent = order.client.phone || 'Телефон не указан';
+
+        const addressText = order.client.address || 'Адрес не указан';
+        document.getElementById('activeClientAddress').textContent = addressText;
+        const addressLinkEl = document.getElementById('activeClientAddressLink');
+        addressLinkEl.href = NavigationHelpers.getYandexRouteHref(order.client.address);
+        addressLinkEl.dataset.address = order.client.address || '';
+
+        const regAddress = (order.passport?.registrationAddress || '').trim();
+        const regLinkEl = document.getElementById('activeClientRegAddressLink');
+        const regTextEl = document.getElementById('activeClientRegAddress');
+        if (regAddress) {
+          regLinkEl.classList.remove('hidden');
+          regTextEl.textContent = regAddress;
+          regLinkEl.href = NavigationHelpers.getYandexRouteHref(regAddress);
+          regLinkEl.dataset.address = regAddress;
+        } else {
+          regLinkEl.classList.add('hidden');
+          regLinkEl.dataset.address = '';
+        }
+
+        document.getElementById('activeClientFloor').textContent = order.client.floor || '—';
+        document.getElementById('activeClientElevator').textContent = order.client.elevator || '—';
+
+        const extraWrap = document.getElementById('activeExtraContactsWrap');
+        const extraList = document.getElementById('activeExtraContactsList');
+        const extraContacts = Array.isArray(order.extraContacts) ? order.extraContacts : [];
+
+        if (extraContacts.length > 0) {
+          extraWrap.classList.remove('hidden');
+          extraList.innerHTML = extraContacts.map(cnt => {
+            const telHref = NavigationHelpers.getTelHref(cnt.phone);
+            const roleLabel = cnt.role ? escapeHTML(cnt.role) : 'Контакт';
+            const nameLabel = cnt.name ? ` • ${escapeHTML(cnt.name)}` : '';
+            const phoneLabel = cnt.phone ? escapeHTML(cnt.phone) : '';
+            return `
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-graphite-800 border border-graphite-700 text-xs">
+                <i class="fa-solid fa-user-tag text-brand-amber text-[10px]"></i>
+                <span class="font-medium text-white">${roleLabel}${nameLabel}</span>
+                ${phoneLabel ? `
+                  <a href="${telHref}"
+                     data-phone="${escapeHTML(cnt.phone)}"
+                     onclick="return window.triggerPhoneCall(this.dataset.phone, event)"
+                     title="Позвонить: ${escapeHTML(cnt.name || cnt.role)}"
+                     class="font-mono text-brand-amber hover:text-amber-300 bg-brand-amber/10 hover:bg-brand-amber/20 border border-brand-amber/30 px-1.5 py-0.5 rounded ml-1 inline-flex items-center gap-1 transition-colors cursor-pointer">
+                    <i class="fa-solid fa-phone text-[9px]"></i>
+                    <span>${phoneLabel}</span>
+                  </a>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        } else {
+          extraWrap.classList.add('hidden');
+          extraList.innerHTML = '';
+        }
+
+        const passportBadge = document.getElementById('activeOrderPassportBadge');
+        const p = order.passport || {};
+        const filledFields = [p.seriesNumber, p.issuedBy, p.issueDate, p.registrationAddress].filter(Boolean).length;
+
+        if (filledFields === 4) {
+          passportBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-md border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 flex items-center gap-1.5 transition-colors hover:bg-emerald-500/20';
+          passportBadge.innerHTML = `<i class="fa-solid fa-id-card"></i><span>Паспорт заполнен (${escapeHTML(p.seriesNumber)})</span>`;
+        } else if (filledFields > 0) {
+          passportBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-md border bg-amber-500/10 text-brand-amber border-brand-amber/30 flex items-center gap-1.5 transition-colors hover:bg-amber-500/20';
+          passportBadge.innerHTML = `<i class="fa-solid fa-id-card"></i><span>Паспорт: ${filledFields}/4 поля</span>`;
+        } else {
+          passportBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-md border bg-graphite-800 text-[#9CA3AF] border-graphite-700 flex items-center gap-1.5 transition-colors hover:text-white';
+          passportBadge.innerHTML = '<i class="fa-solid fa-id-card"></i><span>Паспорт не внесён</span>';
+        }
+
+        const notesWrap = document.getElementById('activeClientNotesWrap');
+        const notesEl = document.getElementById('activeClientNotes');
+        if (order.client.notes && order.client.notes.trim() !== '') {
+          notesWrap.classList.remove('hidden');
+          notesEl.textContent = order.client.notes;
+        } else {
+          notesWrap.classList.add('hidden');
+        }
+
+        let activeCount = 0;
+        let doneCount = 0;
+        MODULE_REGISTRY.forEach(m => {
+          const st = order[m.id]?.status || 'empty';
+          if (st !== 'empty') activeCount++;
+          if (st === 'done') doneCount++;
+        });
+        const percent = Math.round((activeCount / MODULE_REGISTRY.length) * 100);
+        document.getElementById('activeOrderProgressText').textContent = `${activeCount} из 8 в работе (${doneCount} готово)`;
+        document.getElementById('activeOrderProgressPercent').textContent = `${percent}%`;
+      },
+
+      renderBranchCards() {
+        const order = EcosystemStore.getActiveOrder();
+        if (!order) return;
+
+        const entranceContainer = document.getElementById('entranceModulesList');
+        const interiorContainer = document.getElementById('interiorModulesList');
+
+        const entranceModules = MODULE_REGISTRY.filter(m => m.branch === 'entrance');
+        const interiorModules = MODULE_REGISTRY.filter(m => m.branch === 'interior');
+
+        const entranceActive = entranceModules.filter(m => order[m.id]?.status !== 'empty').length;
+        const interiorActive = interiorModules.filter(m => order[m.id]?.status !== 'empty').length;
+        document.getElementById('branchProgress-entrance').textContent = `Активно: ${entranceActive}/${entranceModules.length}`;
+        document.getElementById('branchProgress-interior').textContent = `Активно: ${interiorActive}/${interiorModules.length}`;
+
+        entranceContainer.innerHTML = entranceModules.map(m => this.createModuleCardHTML(m, order[m.id])).join('');
+        interiorContainer.innerHTML = interiorModules.map(m => this.createModuleCardHTML(m, order[m.id])).join('');
+      },
+
+      createModuleCardHTML(mod, slot) {
+        const statusKey = slot?.status || 'empty';
+        const statusInfo = STATUS_META[statusKey] || STATUS_META.empty;
+        const isEntrance = mod.branch === 'entrance';
+        const hoverClass = isEntrance ? 'module-card-entrance' : 'module-card-interior';
+        const accentText = isEntrance ? 'text-brand-amber' : 'text-sky-400';
+        const accentBg = isEntrance ? 'bg-brand-amber/10 border-brand-amber/30' : 'bg-sky-500/10 border-sky-400/30';
+        const notePreview = slot?.payload?.quickNote?.trim();
+
+        const spanClass = (!isEntrance && mod.step === 5) ? 'md:col-span-2' : '';
 
         return `
-          <button type="button" onclick="setArchitrave(${val})"
-            class="py-2 px-1 rounded-lg border text-xs transition flex flex-col items-center justify-center ${btnClass}">
-            <span>${val} мм</span>
-            ${isDefault67 ? '<span class="text-[9px] uppercase tracking-tighter opacity-85">Стд</span>' : ''}
-          </button>
+          <article onclick="AppRouter.navigate('${mod.id}')"
+                   class="module-card ${hoverClass} ${spanClass} cursor-pointer bg-graphite-800 border border-graphite-700 rounded-xl p-4 flex flex-col justify-between gap-3.5 relative group">
+            
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-8 h-8 rounded-lg ${accentBg} border flex items-center justify-center ${accentText} text-sm">
+                    <i class="fa-solid ${mod.icon}"></i>
+                  </span>
+                  <span class="text-xs font-mono text-[#9CA3AF]">Блок ${mod.branch === 'entrance' ? '1.' + mod.step : '2.' + mod.step}</span>
+                </div>
+
+                <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${statusInfo.badgeClass}">
+                  <span class="w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}"></span>
+                  <span>${statusInfo.label}</span>
+                </span>
+              </div>
+
+              <div>
+                <h4 class="text-sm sm:text-base font-bold text-white group-hover:${accentText} transition-colors flex items-center justify-between gap-2">
+                  <span>${mod.title}</span>
+                  <i class="fa-solid fa-arrow-right text-xs opacity-0 group-hover:opacity-100 transition-opacity ${accentText}"></i>
+                </h4>
+                <p class="text-xs text-[#9CA3AF] mt-1 leading-relaxed">
+                  ${mod.description}
+                </p>
+              </div>
+
+              ${notePreview ? `
+                <div class="bg-graphite-900/90 border border-graphite-700 rounded-lg px-3 py-2 text-xs text-[#F3F4F6] flex items-start gap-2">
+                  <i class="fa-solid fa-clipboard-check ${accentText} mt-0.5"></i>
+                  <span class="line-clamp-2">${escapeHTML(notePreview)}</span>
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="pt-2.5 border-t border-graphite-700/70 flex items-center justify-between text-[11px] text-[#9CA3AF]">
+              <span class="font-mono">
+                ${slot?.updatedAt ? 'Изм.: ' + this.formatDate(slot.updatedAt) : 'Данные не вносились'}
+              </span>
+              <span class="font-semibold ${accentText} flex items-center gap-1">
+                Открыть блок <i class="fa-solid fa-chevron-right text-[10px]"></i>
+              </span>
+            </div>
+          </article>
         `;
-      }).join('');
-    }
+      },
 
-    function setArchitrave(val) {
-      state.architrave = val;
-      renderArchitraveButtons();
-      updateCalculations();
-      saveDraft();
-    }
+      setBranchFilter(filter) {
+        this.currentBranchFilter = filter;
+        const filters = ['all', 'entrance', 'interior'];
+        filters.forEach(f => {
+          const btn = document.getElementById(`filterBtn-${f}`);
+          if (f === filter) {
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-graphite-800 text-white shadow';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-[#9CA3AF] hover:text-white';
+          }
+        });
 
-    // --- УПРАВЛЕНИЕ РАЗМЕРОМ КОРОБКИ (ШАГ 30 ММ) ---
-    function setFrameWidth(w) {
-      if (!FRAME_WIDTHS.includes(w)) {
-        // Приводим к ближайшему шагу 30 мм от 860
-        const steps = Math.round((w - 860) / 30);
-        w = 860 + steps * 30;
-        w = Math.max(FRAME_WIDTHS[0], Math.min(FRAME_WIDTHS[FRAME_WIDTHS.length - 1], w));
+        const entranceBox = document.getElementById('branchContainer-entrance');
+        const interiorBox = document.getElementById('branchContainer-interior');
+
+        if (filter === 'all') {
+          entranceBox.classList.remove('hidden');
+          interiorBox.classList.remove('hidden');
+          entranceBox.className = 'lg:col-span-5 bg-graphite-900/90 border border-graphite-700 rounded-2xl p-4 sm:p-6 space-y-5 relative overflow-hidden';
+          interiorBox.className = 'lg:col-span-7 bg-graphite-900/90 border border-graphite-700 rounded-2xl p-4 sm:p-6 space-y-5 relative overflow-hidden';
+        } else if (filter === 'entrance') {
+          entranceBox.classList.remove('hidden');
+          interiorBox.classList.add('hidden');
+          entranceBox.className = 'lg:col-span-12 bg-graphite-900/90 border border-graphite-700 rounded-2xl p-4 sm:p-6 space-y-5 relative overflow-hidden';
+        } else if (filter === 'interior') {
+          entranceBox.classList.add('hidden');
+          interiorBox.classList.remove('hidden');
+          interiorBox.className = 'lg:col-span-12 bg-graphite-900/90 border border-graphite-700 rounded-2xl p-4 sm:p-6 space-y-5 relative overflow-hidden';
+        }
       }
-      state.frameWidth = w;
-      document.getElementById('frameWidthSelect').value = w;
+    };
 
-      // Подсветка пресетов 860 и 950
-      document.getElementById('presetW860').className = w === 860
-        ? 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900'
-        : 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-white text-slate-700 border-slate-300 hover:bg-slate-100';
+    /**
+     * =========================================================================
+     * 5. РОУТЕР ПРИЛОЖЕНИЯ (SPA-НАВИГАЦИЯ МЕЖДУ ГЛАВНЫМ ЭКРАНОМ И 8 БЛОКАМИ)
+     * =========================================================================
+     */
+    const AppRouter = {
+      currentRoute: 'dashboard',
 
-      document.getElementById('presetW950').className = w === 950
-        ? 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-slate-900 text-white border-slate-900'
-        : 'py-1.5 px-2 rounded-lg text-xs font-bold border transition bg-white text-slate-700 border-slate-300 hover:bg-slate-100';
+      navigate(routeId) {
+        const resolvedRoute = routeId === 'ext-measure' ? 'entranceMeasure' : routeId;
+        const dashboardEl = document.getElementById('screen-dashboard');
+        const allModuleSections = document.querySelectorAll('#moduleScreensContainer > section');
 
-      const badge = document.getElementById('widthStdBadge');
-      if (STD_WIDTHS.includes(w)) {
-        badge.textContent = 'Стандарт';
-        badge.className = 'text-[11px] font-semibold px-
+        if (resolvedRoute === 'dashboard') {
+          this.currentRoute = 'dashboard';
+          allModuleSections.forEach(sec => sec.classList.add('hidden'));
+          dashboardEl.classList.remove('hidden');
+          DashboardView.renderAll();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
+        const targetMod = MODULE_REGISTRY.find(m => m.id === resolvedRoute);
+        if (!targetMod) {
+          console.warn('Модуль не найден:', resolvedRoute);
+          return;
+        }
+
+        this.currentRoute = resolvedRoute;
+        dashboardEl.classList.add('hidden');
+        allModuleSections.forEach(sec => {
+          if (sec.id === `screen-${resolvedRoute}`) {
+            sec.classList.remove('hidden');
+          } else {
+            sec.classList.add('hidden');
+          }
+        });
+
+        ModuleScreenView.renderModuleScreen(resolvedRoute);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    /**
+     * =========================================================================
+     * 5.5. МОДУЛЬ ЭТАПА 2: «ЗАМЕРЫ ВХОДНЫХ ДВЕРЕЙ» (EntranceMeasureModule)
+     * Реализует все 5 требований:
+     * 1) Сетка коробок по ширине 860 и 950, по высоте 2050 с шагом 30 мм в обе стороны
+     * 2) Вылет наличника: уличные без МДФ (17..97 шаг 10), квартирные с МДФ (15..105 шаг 10, 67 вместо 65), дефолт 67 мм
+     * 3) Фотофиксация (Сделать фото с камеры / Из галереи)
+     * 4) Все поля для заполнения по умолчанию пустые
+     * 5) 2 варианта печати (Пустой бланк А4 пополам + ИИ-оцифровка по фото / Заполненный замерочный лист А4)
+     * =========================================================================
+     */
+    const EntranceMeasureModule = {
+      SLOPE_MATERIALS: ['Штукатурка', 'МДФ', 'Пластик', 'Гипсокартон', 'Плитка', 'Кирпич'],
+
+      // 1) Сетка ширин коробки с шагом 30 мм (стандарты 860 и 950 мм)
+      FRAME_WIDTHS_GRID: [710, 740, 770, 800, 830, 860, 890, 920, 950, 980, 1010, 1040, 1070, 1100],
+      STANDARD_WIDTHS: [860, 950],
+
+      // 1) Сетка высот коробки с шагом 30 мм (стандарт 2050 мм)
+      FRAME_HEIGHTS_GRID: [1870, 1900, 1930, 1960, 1990, 2020, 2050, 2080, 2110, 2140, 2170, 2200, 2230],
+      STANDARD_HEIGHTS: [2050],
+
+      // 2) Шкалы вылета наличника за габарит коробки:
+      // Уличные без МДФ: от 17 до 97 с шагом 10 мм
+      ARCH_SCALE_STREET: [17, 27, 37, 47, 57, 67, 77, 87, 97],
+      // Квартирные с МДФ: от 15 до 105 с шагом 10 мм, но вместо 65 мм -> 67 мм
+      ARCH_SCALE_APARTMENT: [15, 25, 35, 45, 55, 67, 75, 85, 95, 105],
+      DEFAULT_ARCHITRAVE: 67,
+
+      QUICK_TAGS: [
+        'Демонтаж старой двери',
+        'Резать порог',
+        'Сбивка четверти / штукатурки',
+        'Демонтаж откоса',
+        'Расширение проёма',
+        'Усиление проёма',
+        'Подъём без лифта'
+      ],
+
+      OPENING_SIDES: [
+        {
+          id: 'out_left',
+          title: 'Наружное Левое',
+          sub: 'На себя • Петли слева',
+          hinge: 'left',
+          dir: 'out'
+        },
+        {
+          id: 'out_right',
+          title: 'Наружное Правое',
+          sub: 'На себя • Петли справа',
+          hinge: 'right',
+          dir: 'out'
+        },
+        {
+          id: 'in_left',
+          title: 'Внутреннее Левое',
+          sub: 'От себя • Петли слева',
+          hinge: 'left',
+          dir: 'in'
+        },
+        {
+          id: 'in_right',
+          title: 'Внутреннее Правое',
+          sub: 'От себя • Петли справа',
+          hinge: 'right',
+          dir: 'in'
+        }
+      ],
+
+      currentScannedBlankDataUrl: null,
+
+      getData() {
+        const order = EcosystemStore.getActiveOrder();
+        if (!order) return EcosystemStore.createDefaultEntranceMeasureData();
+        return order.entranceMeasure?.payload || EcosystemStore.createDefaultEntranceMeasureData();
+      },
+
+      getActiveArchScale(doorType) {
+        return doorType === 'apartment' ? this.ARCH_SCALE_APARTMENT : this.ARCH_SCALE_STREET;
+      },
+
+      /**
+       * Формирует лаконичную сводку для карточки на главном экране
+       */
+      buildSummaryString(d) {
+        const hasAnyData = d.openingWidth || d.openingHeight || d.newDoorWidth || d.newDoorHeight || (d.photos && d.photos.length) || d.userComment;
+        if (!hasAnyData) return '';
+
+        const sideMeta = this.OPENING_SIDES.find(s => s.id === d.openingSide) || this.OPENING_SIDES[1];
+        const doorTypeLabel = d.doorType === 'apartment' ? 'Квартирная с МДФ' : 'Уличная без МДФ';
+        const parts = [];
+
+        if (d.openingWidth || d.openingHeight) {
+          parts.push(`Проём: ${d.openingWidth || '—'}×${d.openingHeight || '—'}×${d.wallThickness || '—'} мм`);
+        }
+        if (d.newDoorWidth || d.newDoorHeight) {
+          const bw = Number(d.newDoorWidth) || 0;
+          const bh = Number(d.newDoorHeight) || 0;
+          const totalArchW = bw ? bw + (Number(d.archLeft) || 67) + (Number(d.archRight) || 67) : '—';
+          const totalArchH = bh ? bh + (Number(d.archTop) || 67) : '—';
+          parts.push(`Коробка: ${d.newDoorWidth || '—'}×${d.newDoorHeight || '—'} (${doorTypeLabel}, ${sideMeta.title})`);
+          parts.push(`Наличник: Л${d.archLeft ?? 67}/П${d.archRight ?? 67}/В${d.archTop ?? 67} (${totalArchW}×${totalArchH} мм)`);
+        }
+        if (Array.isArray(d.photos) && d.photos.length > 0) {
+          parts.push(`Фото: ${d.photos.length} шт.`);
+        }
+        if (Array.isArray(d.selectedTags) && d.selectedTags.length > 0) {
+          parts.push(`Работы: ${d.selectedTags.join(', ')}`);
+        }
+        return parts.join(' • ');
+      },
+
+      /**
+       * Сохраняет изменения в активный заказ и обновляет зависимые элементы интерфейса
+       */
+      updateData(patch, { reRenderAll = false, markStatus = null } = {}) {
+        const order = EcosystemStore.getActiveOrder();
+        if (!order) return;
+
+        const currentData = this.getData();
+        const nextData = {
+          ...currentData,
+          ...patch
+        };
+
+        const summaryStr = this.buildSummaryString(nextData);
+        nextData.quickNote = nextData.userComment
+          ? (summaryStr ? `${summaryStr} | Прим.: ${nextData.userComment}` : `Прим.: ${nextData.userComment}`)
+          : summaryStr;
+
+        const currentStatus = order.entranceMeasure?.status || 'empty';
+        const nextStatus = markStatus || (currentStatus === 'empty' && nextData.quickNote ? 'progress' : currentStatus);
+
+        EcosystemStore.updateModuleSlot('entranceMeasure', {
+          status: nextStatus,
+          payloadPatch: nextData
+        });
+
+        DashboardView.renderActiveOrderBanner();
+        DashboardView.renderBranchCards();
+
+        if (reRenderAll) {
+          ModuleScreenView.renderModuleScreen('entranceMeasure');
+        } else {
+          this.refreshDynamicCalculations();
+        }
+      },
+
+      /**
+       * Очистка всех полей замера входной двери (возврат к пустым полям и дефолту 67 мм)
+       */
+      clearAllMeasureFields() {
+        UIModals.openConfirm(
+          'Очистить все поля замера?',
+          'Все введённые размеры, теги и прикреплённые фото в блоке замера входной двери будут сброшены к пустым полям (вылет наличника 67 мм).',
+          () => {
+            const cleanPayload = EcosystemStore.createDefaultEntranceMeasureData();
+            EcosystemStore.updateModuleSlot('entranceMeasure', {
+              status: 'empty',
+              payloadPatch: cleanPayload
+            });
+            DashboardView.renderAll();
+            UIToast.show('Все поля замера очищены', 'info');
+          }
+        );
+      },
+
+      setOpeningState(stateVal) {
+        this.updateData({ openingState: stateVal }, { reRenderAll: true });
+      },
+
+      setSlopeState(slopeVal) {
+        this.updateData({ slopeState: slopeVal }, { reRenderAll: true });
+      },
+
+      /**
+       * Переключение типа двери: Уличная без накладок МДФ (17..97) / Квартирная с МДФ (15..105, 67 вместо 65)
+       */
+      setDoorType(typeVal) {
+        const d = this.getData();
+        const targetScale = this.getActiveArchScale(typeVal);
+        // Если текущие вылеты не входят в новую шкалу — приводим к стандарту 67 мм
+        const fixVal = (v) => targetScale.includes(Number(v)) ? Number(v) : 67;
+        this.updateData({
+          doorType: typeVal,
+          archLeft: fixVal(d.archLeft),
+          archRight: fixVal(d.archRight),
+          archTop: fixVal(d.archTop)
+        }, { reRenderAll: true });
+      },
+
+      toggleSlopeMaterial(mat) {
+        const d = this.getData();
+        const list = Array.isArray(d.slopeMaterials) ? [...d.slopeMaterials] : [];
+        const idx = list.indexOf(mat);
+        if (idx >= 0) {
+          list.splice(idx, 1);
+        } else {
+          list.push(mat);
+        }
+        this.updateData({ slopeMaterials: list }, { reRenderAll: true });
+      },
+
+      setOpeningSide(sideId) {
+        this.updateData({ openingSide: sideId }, { reRenderAll: true });
+      },
+
+      /**
+       * Обработчик ввода числового поля в мм (сохраняет пустую строку, если поле очищено)
+       */
+      onNumberInput(field, rawValue) {
+        const trimmed = String(rawValue ?? '').trim();
+        const val = trimmed === '' ? '' : Math.max(0, parseInt(trimmed, 10) || 0);
+        this.updateData({ [field]: val }, { reRenderAll: false });
+      },
+
+      /**
+       * Шаг изменения ширины или высоты дверной коробки на ±30 мм (от стандартов 860/950 и 2050)
+       */
+      stepBoxDimension(field, delta) {
+        const d = this.getData();
+        const isWidth = field === 'newDoorWidth';
+        const defaultBase = isWidth ? 860 : 2050;
+        const current = Number(d[field]) || defaultBase;
+        const next = Math.max(isWidth ? 650 : 1750, Math.min(isWidth ? 1300 : 2450, current + delta));
+        this.updateData({ [field]: next }, { reRenderAll: true });
+      },
+
+      setBoxDimension(field, val) {
+        const num = val === '' ? '' : Number(val);
+        this.updateData({ [field]: num }, { reRenderAll: true });
+      },
+
+      toggleCustomArchitrave(enabled) {
+        this.updateData({ customArchitrave: Boolean(enabled) }, { reRenderAll: true });
+      },
+
+      /**
+       * Шаг вылета наличника строго по шкале выбранного типа двери:
+       * Уличная без МДФ: [17, 27, 37, 47, 57, 67, 77, 87, 97]
+       * Квартирная с МДФ: [15, 25, 35, 45, 55, 67, 75, 85, 95, 105]
+       */
+      stepArchitrave(field, direction) {
+        const d = this.getData();
+        const scale = this.getActiveArchScale(d.doorType);
+        const current = Number(d[field]) || 67;
+
+        let idx = scale.indexOf(current);
+        if (idx === -1) {
+          // Находим ближайший индекс в шкале
+          idx = scale.reduce((bestIdx, item, i) =>
+            Math.abs(item - current) < Math.abs(scale[bestIdx] - current) ? i : bestIdx
+          , 0);
+        }
+        const nextIdx = Math.max(0, Math.min(scale.length - 1, idx + (direction > 0 ? 1 : -1)));
+        const nextVal = scale[nextIdx];
+
+        this.updateData({ [field]: nextVal, customArchitrave: true }, { reRenderAll: true });
+      },
+
+      /**
+       * Установить одинаковый вылет наличника сразу для всех 3 сторон (Слева, Справа, Сверху)
+       */
+      setAllArchitraves(val) {
+        const num = Number(val) || 67;
+        this.updateData({
+          archLeft: num,
+          archRight: num,
+          archTop: num,
+          customArchitrave: num !== 67
+        }, { reRenderAll: true });
+      },
+
+      setSingleArchitrave(field, val) {
+        const num = Number(val) || 67;
+        this.updateData({
+          [field]: num,
+          customArchitrave: true
+        }, { reRenderAll: true });
+      },
+
+      /**
+       * Сброс вылетов наличника к заводскому стандарту по умолчанию — 67 мм
+       */
+      resetArchitraveToDefault() {
+        this.updateData({
+          archLeft: 67,
+          archRight: 67,
+          archTop: 67,
+          customArchitrave: false
+        }, { reRenderAll: true });
+        UIToast.show('Вылет наличника сброшен на стандарт по умолчанию: 67 мм', 'info');
+      },
+
+      /**
+       * Выбор готового размера коробки
+       */
+      selectStandardSize(w, h) {
+        this.updateData({ newDoorWidth: w, newDoorHeight: h }, { reRenderAll: true });
+        UIToast.show(`Выбран размер коробки: ${w}×${h} мм`, 'success');
+      },
+
+      /**
+       * Автоподбор размера новой двери строго по сетке с шагом 30 мм (база 860 / 950 и 2050)
+       */
+      autoRecommendDoorSize() {
+        const d = this.getData();
+        const ow = Number(d.openingWidth) || 0;
+        const oh = Number(d.openingHeight) || 0;
+
+        if (ow < 700 || oh < 1800) {
+          UIToast.show('Сначала введите ширину и высоту стенового проёма (в Шаге 2)', 'info');
+          return;
+        }
+
+        // Подбираем максимальную ширину из сетки 30 мм, чтобы монтажный зазор был >= 20 мм
+        let recW = this.FRAME_WIDTHS_GRID[0];
+        for (const w of this.FRAME_WIDTHS_GRID) {
+          if (w <= ow - 20) {
+            recW = w;
+          }
+        }
+
+        // Подбираем максимальную высоту из сетки 30 мм, чтобы монтажный зазор был >= 15 мм
+        let recH = this.FRAME_HEIGHTS_GRID[0];
+        for (const h of this.FRAME_HEIGHTS_GRID) {
+          if (h <= oh - 15) {
+            recH = h;
+          }
+        }
+
+        this.updateData({
+          newDoorWidth: recW,
+          newDoorHeight: recH
+        }, { reRenderAll: true });
+
+        const isStd = this.STANDARD_WIDTHS.includes(recW) && this.STANDARD_HEIGHTS.includes(recH);
+        UIToast.show(
+          `Подобрана коробка ${recW}×${recH} мм (${isStd ? 'Стандарт' : 'Шаг 30 мм'}) под проём ${ow}×${oh} мм`,
+          'success'
+        );
+      },
+
+      toggleQuickTag(tag) {
+        const d = this.getData();
+        const tags = Array.isArray(d.selectedTags) ? [...d.selectedTags] : [];
+        const idx = tags.indexOf(tag);
+        if (idx >= 0) {
+          tags.splice(idx, 1);
+        } else {
+          tags.push(tag);
+        }
+        this.updateData({ selectedTags: tags }, { reRenderAll: true });
+      },
+
+      onCommentInput(val) {
+        this.updateData({ userComment: val }, { reRenderAll: false });
+      },
+
+      /**
+       * =======================================================================
+       * 3) ФОТОФИКСАЦИЯ (СДЕЛАТЬ ФОТО КАМЕРОЙ ИЛИ ДОБАВИТЬ ИЗ ГАЛЕРЕИ)
+       * =======================================================================
+       */
+      compressImage(file, maxDim, quality, callback) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            callback(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      },
+
+      handlePhotoFiles(event) {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+
+        files.forEach(file => {
+          this.compressImage(file, 1200, 0.78, (dataUrl) => {
+            const d = this.getData();
+            const photos = Array.isArray(d.photos) ? [...d.photos] : [];
+            photos.push({
+              id: 'ph_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+              dataUrl,
+              caption: '',
+              createdAt: new Date().toISOString()
+            });
+            this.updateData({ photos }, { reRenderAll: true });
+          });
+        });
+
+        UITo
