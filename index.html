@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Стальная линия — Экосистема замеров и договоров</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            graphite: {
+              950: '#0b0d11',
+              900: '#11141b',
+              850: '#161a23',
+              800: '#1c212c',
+              700: '#262d3d',
+              600: '#343d52'
+            },
+            brand: {
+              gold: '#f59e0b',
+              goldLight: '#fbbf24',
+              steel: '#38bdf8'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0b0d11;
+      color: #f3f4f6;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #11141b;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #262d3d;
+      border-radius: 3px;
+    }
+
+    /* Стили печати */
+    #print-container {
+      display: none;
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      #app-shell,
+      .no-print {
+        display: none !important;
+      }
+      #print-container {
+        display: block !important;
+        width: 100%;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-graphite-950 text-gray-100 selection:bg-amber-500 selection:text-black">
+
+  <!-- ОСНОВНОЙ ИНТЕРФЕЙС ПРИЛОЖЕНИЯ -->
+  <div id="app-shell" class="max-w-6xl mx-auto px-3 sm:px-6 pb-20">
+
+    <!-- ШАПКА ФИРМЕННОГО САЛОНА -->
+    <header class="sticky top-0 z-30 bg-graphite-950/95 backdrop-blur-md border-b border-graphite-700/80 py-3 mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="App.navigate('dashboard')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-400/40">
+            <i data-lucide="shield-check" class="w-6 h-6 text-graphite-950"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Фирменный салон</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-graphite-800 border border-graphite-700 text-gray-400">Экосистема v2.0</span>
+            </div>
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">СТАЛЬНАЯ ЛИНИЯ</h1>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="App.openOrdersModal()" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-xs sm:text-sm font-medium transition">
+            <i data-lucide="folder-open" class="w-4 h-4 text-amber-400"></i>
+            <span>Журнал заказов</span>
+            <span id="orders-count-badge" class="px-1.5 py-0.5 text-[11px] rounded-md bg-graphite-950 text-amber-400 font-bold">1</span>
+          </button>
+          <button onclick="App.createNewOrder()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 text-xs sm:text-sm font-bold transition shadow-md shadow-amber-500/10">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Новый заказ</span>
+          </button>
+          <button onclick="App.openBackupModal()" title="Резервная копия базы" class="p-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-700 text-gray-300 transition">
+            <i data-lucide="database" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- СКВОЗНАЯ КАРТОЧКА АКТИВНОГО ЗАКАЗА -->
+    <section id="active-order-banner" class="mb-5"></section>
+
+    <!-- ДИНАМИЧЕСКАЯ ОБЛАСТЬ ЭКРАНОВ -->
+    <main id="main-view"></main>
+
+  </div>
+
+  <!-- КОНТЕЙНЕР ДЛЯ ПЕЧАТИ А4 -->
+  <div id="print-container"></div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: РЕДАКТИРОВАНИЕ КЛИЕНТА, ПАСПОРТА И ДОП. КОНТАКТОВ -->
+  <div id="client-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-auto">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-graphite-700 bg-graphite-850">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="user-check" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-bold text-base sm:text-lg text-white">Карточка клиента и паспортные данные</h3>
+        </div>
+        <button onclick="App.closeClientModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 max-h-[80vh] overflow-y-auto custom-scroll space-y-5">
+        <!-- Основные данные -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-1.5">
+            <i data-lucide="contact" class="w-4 h-4"></i> 1. Основные данные объекта
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs text-gray-400 mb-1">ФИО клиента (синхронизировано с паспортом)</label>
+              <input id="modal-client-name" type="text" oninput="App.syncModalFio('main')" placeholder="Иванов Иван Иванович" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Основной телефон</label>
+              <div class="flex gap-1.5">
+                <input id="modal-client-phone" type="tel" placeholder="+375 (29) 000-00-00" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
+                <button type="button" onclick="App.callFromInput('modal-client-phone')" title="Позвонить" class="px-3 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600/30 transition flex items-center justify-center">
+                  <i data-lucide="phone-call" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Этаж / Грузовой лифт</label>
+              <div class="flex gap-2">
+                <input id="modal-client-floor" type="text" placeholder="Этаж (напр. 4)" class="w-1/2 px-3 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
+                <select id="modal-client-elevator" class="w-1/2 px-3 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white">
+                  <option value="none">Без лифта</option>
+                  <option value="pass">Пассажирский</option>
+                  <option value="cargo">Грузовой лифт</option>
+                  <option value="house">Частный дом</option>
+                </select>
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs text-gray-400 mb-1">Адрес установки (объекта)</label>
+              <div class="flex gap-1.5">
+                <input id="modal-client-address" type="text" placeholder="г. Борисов, ул. Дёмина 39, кв. 12" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
+                <button type="button" onclick="App.routeFromInput('modal-client-address')" title="Маршрут в Яндекс Картах" class="px-3 rounded-xl bg-sky-600/20 border border-sky-500/40 text-sky-400 hover:bg-sky-600/30 transition flex items-center gap-1.5 text-xs font-semibold shrink-0">
+                  <i data-lucide="navigation" class="w-4 h-4"></i>
+                  <span class="hidden sm:inline">Маршрут</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Дополнительные контакты -->
+        <div class="pt-3 border-t border-graphite-800">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+              <i data-lucide="users" class="w-4 h-4"></i> 2. Дополнительные контакты (строители, родственники)
+            </h4>
+            <button type="button" onclick="App.addExtraContactRow()" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Добавить контакт
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-3">
+            <button type="button" onclick="App.addExtraContactRow('Строители / Прораб')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Строители / Прораб</button>
+            <button type="button" onclick="App.addExtraContactRow('Супруг(а)')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Супруг(а)</button>
+            <button type="button" onclick="App.addExtraContactRow('Родственники')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Родственники</button>
+            <button type="button" onclick="App.addExtraContactRow('Дизайнер')" class="text-[11px] px-2 py-1 rounded-md bg-graphite-800 hover:bg-graphite-700 text-gray-300 border border-graphite-700">+ Дизайнер</button>
+          </div>
+          <div id="modal-extra-contacts-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Паспортные данные -->
+        <div class="pt-3 border-t border-graphite-800">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3 flex items-center gap-1.5">
+            <i data-lucide="CreditCard" class="w-4 h-4"></i> 3. Паспортные данные (для договора)
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs text-gray-400 mb-1">ФИО по паспорту (дублируется с карточкой)</label>
+              <input id="modal-passport-fio" type="text" oninput="App.syncModalFio('passport')" placeholder="Иванов Иван Иванович" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Серия и номер паспорта / ID-карты</label>
+              <input id="modal-passport-series" type="text" placeholder="MP 1234567" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white uppercase" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Когда выдан документ</label>
+              <input id="modal-passport-date" type="text" placeholder="12.05.2019" class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs text-gray-400 mb-1">Каким органом выдан документ</label>
+              <input id="modal-passport-issued" type="text" placeholder="Борисовским РУВД Минской обл." class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
+            </div>
+            <div class="sm:col-span-2">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs text-gray-400">Место прописки (регистрации) по паспорту</label>
+                <button type="button" onclick="App.copyAddressToRegistration()" class="text-[11px] text-amber-400 hover:underline font-medium">
+                  Совпадает с адресом объекта
+                </button>
+              </div>
+              <div class="flex gap-1.5">
+                <input id="modal-passport-reg" type="text" placeholder="г. Борисов, ул. ..." class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-emerald-500 focus:outline-none text-sm text-white" />
+                <button type="button" onclick="App.routeFromInput('modal-passport-reg')" title="Маршрут в Яндекс Картах" class="px-3 rounded-xl bg-sky-600/20 border border-sky-500/40 text-sky-400 hover:bg-sky-600/30 transition flex items-center justify-center shrink-0">
+                  <i data-lucide="map-pin" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-graphite-700 bg-graphite-850">
+        <button onclick="App.closeClientModal()" class="px-4 py-2 rounded-xl bg-graphite-800 hover:bg-graphite-700 text-sm text-gray-300">Отмена</button>
+        <button onclick="App.saveClientModal()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-sm">Сохранить данные</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: ЖУРНАЛ ЗАКАЗОВ -->
+  <div id="orders-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-graphite-700 bg-graphite-850">
+        <div class="flex items-center gap-2">
+          <i data-lucide="folder-kanban" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-bold text-base sm:text-lg text-white">Журнал заказов</h3>
+        </div>
+        <button onclick="App.closeOrdersModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-4 border-b border-graphite-800">
+        <input id="orders-search-input" type="text" oninput="App.renderOrdersList()" placeholder="Поиск по ФИО, адресу или телефону..." class="w-full px-3.5 py-2.5 rounded-xl bg-graphite-950 border border-graphite-700 focus:border-amber-500 focus:outline-none text-sm text-white" />
+      </div>
+      <div id="orders-modal-list" class="p-4 max-h-[60vh] overflow-y-auto custom-scroll space-y-2.5"></div>
+      <div class="flex justify-between items-center px-5 py-3.5 border-t border-graphite-700 bg-graphite-850">
+        <button onclick="App.createNewOrder(); App.closeOrdersModal();" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-xs sm:text-sm">
+          <i data-lucide="plus" class="w-4 h-4"></i> Создать новый пустой заказ
+        </button>
+        <button onclick="App.closeOrdersModal()" class="px-4 py-2 rounded-xl bg-graphite-800 text-sm text-gray-300">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: СКАНЕР ФОТО РУКОПИСНОГО БЛАНКА -->
+  <div id="ocr-modal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl my-auto">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-graphite-700 bg-graphite-850">
+        <div class="flex items-center gap-2">
+          <i data-lucide="scan-line" class="w-5 h-5 text-amber-400"></i>
+          <div>
+            <h3 class="font-bold text-base text-white">Загрузка и распознавание рукописного бланка</h3>
+            <p class="text-xs text-gray-400">Сфотографируйте заполненный на адресе бланк А5 — программа извлечёт размеры в поля</p>
+          </div>
+        </div>
+        <button onclick="App.closeOcrModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 max-h-[78vh] overflow-y-auto custom-scroll space-y-4">
+        <div class="flex flex-wrap gap-2">
+          <label class="cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-xs sm:text-sm transition">
+            <i data-lucide="camera" class="w-4 h-4"></i> Сфотографировать бланк
+            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleBlankImageUpload(event)" />
+          </label>
+          <label class="cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl bg-graphite-800 hover:bg-graphite-700 border border-graphite-600 text-gray-200 font-semibold text-xs sm:text-sm transition">
+            <i data-lucide="image" class="w-4 h-4 text-sky-400"></i> Выбрать фото из галереи
+            <input type="file" accept="image/*" class="hidden" onchange="App.handleBlankImageUpload(event)" />
+          </label>
+        </div>
+
+        <div id="ocr-status-box" class="hidden p-3 rounded-xl bg-graphite-950 border border-graphite-700 text-xs text-amber-300 flex items-center gap-2">
+          <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+          <span id="ocr-status-text">Анализируем изображение бланка...</span>
+        </div>
+
+        <div id="ocr-workspace" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-graphite-950 border border-graphite-800 rounded-xl p-2 flex flex-col items-center">
+            <span class="text-[11px] text-gray-400 mb-1.5">Загруженное фото бланка (можно сверять числа):</span>
+            <img id="ocr-preview-img" src="" alt="Скан бланка" class="max-h-80 object-contain rounded-lg border border-graphite-800" />
+          </div>
+
+          <div class="bg-graphite-950 border border-graphite-800 rounded-xl p-3.5 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-400 uppercase">Распознанные параметры бланка</span>
+              <span class="text-[11px] text-gray-400">Проверьте перед подстановкой</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[11px] text-gray-400">Проём Ш (мм)</label>
+                <input id="ocr-op-w" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Проём В (мм)</label>
+                <input id="ocr-op-h" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Стена Г (мм)</label>
+                <input id="ocr-op-d" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white font-bold" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Старая кор. Ш</label>
+                <input id="ocr-old-w" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Старая кор. В</label>
+                <input id="ocr-old-h" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Толщ. кор.</label>
+                <input id="ocr-old-d" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Ст. налич. Ш</label>
+                <input id="ocr-arch-w" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Ст. налич. В</label>
+                <input id="ocr-arch-h" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Откос Ш×В</label>
+                <div class="flex gap-1">
+                  <input id="ocr-slope-w" type="number" placeholder="Ш" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
+                  <input id="ocr-slope-h" type="number" placeholder="В" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-white" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">До перем. Снар.</label>
+                <input id="ocr-lintel-out" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">До перем. Внутр.</label>
+                <input id="ocr-lintel-in" type="number" class="w-full px-2.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400">Новая дверь Ш×В</label>
+                <div class="flex gap-1">
+                  <input id="ocr-rec-w" type="number" placeholder="860" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-amber-400 font-bold" />
+                  <input id="ocr-rec-h" type="number" placeholder="2050" class="w-1/2 px-1.5 py-1.5 rounded-lg bg-graphite-900 border border-graphite-700 text-xs text-amber-400 font-bold" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-graphite-700 bg-graphite-850">
+        <button onclick="App.closeOcrModal()" class="px-4 py-2 rounded-xl bg-graphite-800 text-sm text-gray-300">Отмена</button>
+        <button onclick="App.applyOcrDataToMeasure()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-sm flex items-center gap-1.5">
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i> Подставить размеры в замер
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: ПРЕДПРОСМОТР ПЕЧАТИ (ДЛЯ УДОБСТВА В БРАУЗЕРЕ И СМАРТФОНЕ) -->
+  <div id="print-preview-modal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto no-print">
+    <div class="bg-graphite-900 border border-graphite-700 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-auto">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-graphite-700 bg-graphite-850">
+        <div class="flex items-center gap-2">
+          <i data-lucide="printer" class="w-5 h-5 text-amber-400"></i>
+          <h3 id="print-preview-title" class="font-bold text-base text-white">Предпросмотр документа А4</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-graphite-950 font-bold text-xs sm:text-sm">
+            <i data-lucide="printer" class="w-4 h-4"></i> Отправить на печать / PDF
+          </button>
+          <button onclick="App.closePrintPreview()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-graphite-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-4
